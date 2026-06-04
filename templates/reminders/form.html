@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<h1 class="page-title">New Reminder for {{ vehicle.registration_number }}</h1>
+<form method="post" class="form-card">{% csrf_token %}
+  {% for field in form %}<div class="field"><label>{{ field.label }}</label>{{ field|add_class:"input" }}</div>{% endfor %}
+  <button class="btn-primary">Create</button>
+</form>
+{% endblock %}

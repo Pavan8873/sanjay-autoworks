@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}Checksheet — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<!-- Stepper -->
+<div class="stepper">
+  <a class="step done" href="{% url 'customers:edit' job.customer.pk %}" style="text-decoration:none;color:inherit">
+    <div class="step-num">✓</div><span class="step-label">Register</span>
+  </a>
+  <div class="step-sep done"></div>
+  <a class="step done" href="{% url 'jobcards:setup' job.pk %}" style="text-decoration:none;color:inherit">
+    <div class="step-num">✓</div><span class="step-label">Job Card</span>
+  </a>
+  <div class="step-sep done"></div>
+  <div class="step active"><div class="step-num">3</div><span class="step-label">Checksheet</span></div>
+  <div class="step-sep"></div>
+  <div class="step"><div class="step-num">4</div><span class="step-label">Parts &amp; Labour</span></div>
+  <div class="step-sep"></div>
+  <div class="step"><div class="step-num">5</div><span class="step-label">Bill</span></div>
+</div>
+
+<div class="page-head" style="margin-bottom:.75rem">
+  <div>
+    <h1 class="page-title" style="margin-bottom:.2rem">{{ job.job_number }} — Service Checksheet</h1>
+    <p class="muted" style="margin:0">
+      {{ job.customer.name }} &nbsp;·&nbsp; {{ job.vehicle.registration_number }} &nbsp;·&nbsp;
+      {{ job.vehicle.make }} {{ job.vehicle.model }}
+    </p>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    {% if has_checksheet %}
+    <a class="btn small" href="{% url 'jobcards:print_checksheet' job.pk %}" target="_blank">🖨 Print Checksheet</a>
+    {% endif %}
+    <a class="btn small" href="{% url 'jobcards:setup' job.pk %}">← Job Card</a>
+  </div>
+</div>
+
+{% if messages %}
+<div style="margin-bottom:1rem">
+  {% for msg in messages %}
+  <div class="alert" style="padding:.6rem 1rem;border-radius:6px;margin-bottom:.4rem;background:{% if 'error' in msg.tags %}#fee2e2;color:#991b1b{% else %}#d1fae5;color:#065f46{% endif %}">{{ msg }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post">
+{% csrf_token %}
+<input type="hidden" name="_action" id="form-action" value="save">
+
+<div class="setup-card" style="max-width:900px">
+  <div class="setup-card-head">
+    <span class="card-icon">✅</span>
+    <h2>Service Checksheet</h2>
+    <span class="card-badge" style="background:#dcfce7;color:#166534;">Step 3</span>
+  </div>
+  <div class="setup-card-body">
+
+    <!-- Vehicle Details -->
+    <div class="jc-section-title">Vehicle Details</div>
+    <div class="jc-row-3" style="margin-bottom:.85rem">
+      <div class="jc-cell"><label>Reg. No.</label><div class="jc-val">{{ job.vehicle.registration_number }}</div></div>
+      <div class="jc-cell"><label>Make</label><div class="jc-val">{{ job.vehicle.make }}</div></div>
+      <div class="jc-cell"><label>Model</label><div class="jc-val">{{ job.vehicle.model }}</div></div>
+    </div>
+
+    <!-- Service Checklist -->
+    <div class="jc-section-title">Service Checklist</div>
+    <div class="jc-table-wrap" style="margin-bottom:.85rem">
+      <table class="wa-table" style="font-size:.8rem">
+        <thead>
+          <tr>
+            <th style="text-align:left;width:42%">Item</th>
+            <th style="width:10%">OK</th>
+            <th style="width:10%">NG</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, status_field, rem_field in cs_rows %}
+          <tr>
+            <td style="text-align:left">{{ label }}</td>
+            <td class="wa-radio-cell">
+              <label class="wa-radio-lbl">
+                <input type="radio" name="{{ status_field.html_name }}" value="ok"
+                  {% if status_field.value == "ok" %}checked{% endif %}>
+              </label>
+            </td>
+            <td class="wa-radio-cell">
+              <label class="wa-radio-lbl">
+                <input type="radio" name="{{ status_field.html_name }}" value="ng"
+                  {% if status_field.value == "ng" %}checked{% endif %}>
+              </label>
+            </td>
+            <td>{% render_field rem_field class="input" style="font-size:.8rem;padding:.3rem .45rem" placeholder="Remarks" %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Diagnostics -->
+    <div class="jc-section-title">Diagnostics Report</div>
+    <div class="field" style="margin-bottom:.85rem">
+      {% render_field cs_form.diagnostics_report class="input" rows="2" placeholder="Diagnostics findings (if any)" %}
+    </div>
+
+    <!-- Battery -->
+    <div class="jc-section-title">Battery</div>
+    <div class="field" style="margin-bottom:.5rem">
+      <label>{{ cs_form.battery_voltage.label }}</label>
+      {% render_field cs_form.battery_voltage class="input" placeholder="e.g. 12.6 V" %}
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin:.25rem 0 .4rem">Specific Gravity — each cell:</p>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.4rem;margin-bottom:.85rem">
+      {% render_field cs_form.battery_cell_1 class="input" style="font-size:.8rem;padding:.3rem .35rem" placeholder="a" %}
+      {% render_field cs_form.battery_cell_2 class="input" style="font-size:.8rem;padding:.3rem .35rem" placeholder="b" %}
+      {% render_field cs_form.battery_cell_3 class="input" style="font-size:.8rem;padding:.3rem .35rem" placeholder="c" %}
+      {% render_field cs_form.battery_cell_4 class="input" style="font-size:.8rem;padding:.3rem .35rem" placeholder="d" %}
+      {% render_field cs_form.battery_cell_5 class="input" style="font-size:.8rem;padding:.3rem .35rem" placeholder="e" %}
+      {% render_field cs_form.battery_cell_6 class="input" style="font-size:.8rem;padding:.3rem .35rem" placeholder="f" %}
+    </div>
+
+    <!-- Brake -->
+    <div class="jc-section-title">Brake Pads (mm)</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.5rem">
+      <div class="field"><label style="font-size:.75rem">Front LHS</label>{% render_field cs_form.brake_front_lhs class="input" style="font-size:.82rem" placeholder="mm" %}</div>
+      <div class="field"><label style="font-size:.75rem">Front RHS</label>{% render_field cs_form.brake_front_rhs class="input" style="font-size:.82rem" placeholder="mm" %}</div>
+      <div class="field"><label style="font-size:.75rem">Rear LHS</label>{% render_field cs_form.brake_rear_lhs class="input" style="font-size:.82rem" placeholder="mm" %}</div>
+      <div class="field"><label style="font-size:.75rem">Rear RHS</label>{% render_field cs_form.brake_rear_rhs class="input" style="font-size:.82rem" placeholder="mm" %}</div>
+    </div>
+    <div class="field" style="margin-bottom:.85rem">
+      <label>Brake Liners</label>
+      {% render_field cs_form.brake_liners class="input" rows="1" %}
+    </div>
+
+    <!-- Job Remarks -->
+    <div class="jc-section-title">Job Performed / Remarks</div>
+    <div class="field">
+      {% render_field cs_form.job_remarks class="input" rows="3" placeholder="Findings, work done, recommendations…" %}
+    </div>
+
+  </div>
+</div>
+
+<!-- Action Bar -->
+<div class="setup-actions">
+  <button type="submit" class="btn-primary" onclick="setAction('save')">💾 Save Checksheet</button>
+  <button type="submit" class="btn btn-add" onclick="setAction('next')" style="font-weight:600">
+    Next: Parts &amp; Labour →
+  </button>
+  <a class="btn" href="{% url 'jobcards:setup' job.pk %}">← Back: Job Card</a>
+  <span class="muted small" style="margin-left:auto">Step 3 of 5</span>
+</div>
+
+</form>
+
+<script>
+function setAction(v){ document.getElementById('form-action').value = v; }
+</script>
+{% endblock %}

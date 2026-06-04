@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}Job Card — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<!-- Stepper -->
+<div class="stepper">
+  <a class="step done" href="{% url 'customers:edit' job.customer.pk %}" style="text-decoration:none;color:inherit">
+    <div class="step-num">✓</div><span class="step-label">Register</span>
+  </a>
+  <div class="step-sep done"></div>
+  <div class="step active">
+    <div class="step-num">2</div><span class="step-label">Job Card</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step">
+    <div class="step-num">3</div><span class="step-label">Checksheet</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step">
+    <div class="step-num">4</div><span class="step-label">Parts &amp; Labour</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step">
+    <div class="step-num">5</div><span class="step-label">Bill</span>
+  </div>
+</div>
+
+<!-- Page Header -->
+<div class="page-head" style="margin-bottom:.75rem">
+  <div>
+    <h1 class="page-title" style="margin-bottom:.2rem">{{ job.job_number }}</h1>
+    <p class="muted" style="margin:0">
+      {{ job.customer.name }} &nbsp;·&nbsp; {{ job.vehicle.registration_number }} &nbsp;·&nbsp;
+      {{ job.vehicle.make }} {{ job.vehicle.model }}
+      &nbsp;<span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span>
+    </p>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <a class="btn small" href="{% url 'jobcards:print_jobcard' job.pk %}" target="_blank">🖨 Print Job Card</a>
+  </div>
+</div>
+
+{% if messages %}
+<div style="margin-bottom:1rem">
+  {% for msg in messages %}
+  <div class="alert" style="padding:.6rem 1rem;border-radius:6px;margin-bottom:.4rem;background:{% if 'error' in msg.tags %}#fee2e2;color:#991b1b{% else %}#d1fae5;color:#065f46{% endif %}">{{ msg }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" id="setup-form">
+{% csrf_token %}
+<input type="hidden" name="_action" id="form-action" value="save">
+
+<div class="setup-card" style="max-width:900px">
+  <div class="setup-card-head">
+    <span class="card-icon">📋</span>
+    <h2>Job Card</h2>
+    <span class="card-badge">Step 2</span>
+  </div>
+  <div class="setup-card-body">
+
+    <!-- Job Info -->
+    <div class="jc-section-title">Job Information</div>
+    <div class="jc-row-2" style="margin-bottom:.85rem">
+      <div class="jc-cell">
+        <label>Service Advisor</label>
+        {% render_field jc_form.service_advisor class="input" placeholder="Name" %}
+      </div>
+      <div class="jc-cell">
+        <label>Technician</label>
+        {% render_field jc_form.mechanic class="input" %}
+      </div>
+    </div>
+
+    <!-- Customer & Vehicle -->
+    <div class="jc-section-title">Customer &amp; Vehicle</div>
+    <div class="jc-row-2" style="margin-bottom:.85rem">
+      <div class="jc-cell">
+        <label>Customer <span class="req">*</span></label>
+        {% render_field jc_form.customer class="input" %}
+      </div>
+      <div class="jc-cell">
+        <label>Vehicle <span class="req">*</span></label>
+        {% render_field jc_form.vehicle class="input" %}
+      </div>
+    </div>
+
+    <!-- Vehicle Condition -->
+    <div class="jc-section-title">Vehicle Condition</div>
+    <div class="jc-row-2" style="margin-bottom:.25rem">
+      <div class="jc-cell">
+        <label>Odometer (km)</label>
+        {% render_field jc_form.odometer_in class="input" placeholder="e.g. 45000" %}
+      </div>
+      <div class="jc-cell">
+        <label>Battery Condition / Make</label>
+        {% render_field jc_form.battery_condition class="input" placeholder="e.g. Good / Amaron" %}
+      </div>
+    </div>
+    <div class="jc-row-2" style="margin-bottom:.85rem">
+      <div class="jc-cell">
+        <label>Tyres Condition / Make</label>
+        {% render_field jc_form.tyres_condition class="input" placeholder="e.g. MRF 60%" %}
+      </div>
+      <div class="jc-cell">
+        <label>Status</label>
+        {% render_field jc_form.status class="input" %}
+      </div>
+    </div>
+
+    <!-- Work Description -->
+    <div class="jc-section-title">Work Description</div>
+    <div class="field" style="margin-bottom:.85rem">
+      <label>Work to do</label>
+      {% render_field jc_form.work_to_do class="input" rows="3" %}
+    </div>
+    <div class="field" style="margin-bottom:.85rem">
+      <label>Inspection Notes</label>
+      {% render_field jc_form.inspection_notes class="input" rows="2" %}
+    </div>
+
+    <!-- Walk-Around Checklist -->
+    <div class="jc-section-title">Walk-Around Checklist</div>
+    <div class="jc-table-wrap" style="margin-bottom:.5rem">
+      <table class="wa-table" style="font-size:.8rem">
+        <thead>
+          <tr>
+            <th class="wa-item-col" style="width:38%">Item</th>
+            <th class="wa-opt-col" style="width:20%">OK</th>
+            <th class="wa-opt-col" style="width:20%">Not Working</th>
+            <th class="wa-opt-col" style="width:22%">Dent/Damage</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, field in wa_rows %}
+          <tr>
+            <td style="text-align:left">{{ label }}</td>
+            {% for choice_val, choice_label in field.field.choices %}
+            {% if choice_val %}
+            <td class="wa-radio-cell">
+              <label class="wa-radio-lbl">
+                <input type="radio"
+                  name="{{ field.html_name }}"
+                  value="{{ choice_val }}"
+                  {% if field.value == choice_val %}checked{% endif %}>
+              </label>
+            </td>
+            {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- Action Bar -->
+<div class="setup-actions">
+  <button type="submit" class="btn-primary" onclick="setAction('save')">💾 Save</button>
+  <button type="submit" class="btn btn-add" onclick="setAction('next')" style="font-weight:600">
+    Next: Service Checksheet →
+  </button>
+  <a class="btn" href="{% url 'customers:new' %}">← Back</a>
+  <span class="muted small" style="margin-left:auto">Step 2 of 5</span>
+</div>
+
+</form>
+
+<script>
+function setAction(v){ document.getElementById('form-action').value = v; }
+
+const vehicles = {{ vehicles_json|safe }};
+const customers = {{ customers_json|safe }};
+const vehSel = document.querySelector('[name="jc-vehicle"]');
+const custSel = document.querySelector('[name="jc-customer"]');
+if (vehSel && custSel) {
+  vehSel.addEventListener('change', function(){
+    const v = vehicles.find(x => x.id == this.value);
+    if (v) { custSel.value = v.customer_id; }
+  });
+}
+</script>
+{% endblock %}

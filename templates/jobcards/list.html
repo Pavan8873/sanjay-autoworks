@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head">
+  <h1 class="page-title">Job Cards</h1>
+  <a class="btn-primary" href="{% url 'jobcards:new' %}">+ New Job Card</a>
+</div>
+<div class="filters">
+  <a href="?" class="{% if not status %}active{% endif %}">All</a>
+  <a href="?status=open" class="{% if status == 'open' %}active{% endif %}">Open</a>
+  <a href="?status=in_progress" class="{% if status == 'in_progress' %}active{% endif %}">In Progress</a>
+  <a href="?status=completed" class="{% if status == 'completed' %}active{% endif %}">Completed</a>
+  <a href="?status=billed" class="{% if status == 'billed' %}active{% endif %}">Billed</a>
+</div>
+<section class="card">
+<table class="data">
+<thead>
+  <tr>
+    <th>Job #</th><th>Customer</th><th>Vehicle</th><th>Created</th><th>Status</th><th>Actions</th>
+  </tr>
+</thead>
+<tbody>
+{% for j in jobs %}
+<tr>
+  <td><a href="{% url 'jobcards:detail' j.pk %}">{{ j.job_number }}</a></td>
+  <td>
+    <a href="{% url 'customers:detail' j.customer.pk %}">{{ j.customer.name }}</a>
+    <br><span class="muted small">{{ j.customer.phone }}</span>
+  </td>
+  <td>{{ j.vehicle.registration_number }}<br><span class="muted small">{{ j.vehicle.make }} {{ j.vehicle.model }}</span></td>
+  <td>{{ j.created_at|date:"d M Y" }}<br><span class="muted small">{{ j.created_at|time:"H:i" }}</span></td>
+  <td><span class="badge badge-{{ j.status }}">{{ j.get_status_display }}</span></td>
+  <td>
+    <a class="linkbtn action-edit" href="{% url 'jobcards:setup' j.pk %}">Edit</a>
+    {% if j.status != 'billed' and j.status != 'cancelled' %}
+      <a class="linkbtn" href="{% url 'jobcards:parts_step' j.pk %}" style="color:#0891b2">Parts</a>
+    {% endif %}
+    {% if j.status == 'billed' %}
+      <a class="linkbtn" href="{% url 'billing:detail' j.invoice.pk %}" style="color:#7c3aed">Invoice</a>
+    {% endif %}
+    <form method="post" action="{% url 'jobcards:delete' j.pk %}" style="display:inline"
+          onsubmit="return confirm('Delete {{ j.job_number }}? This cannot be undone.')">
+      {% csrf_token %}
+      <button class="linkbtn danger">Delete</button>
+    </form>
+  </td>
+</tr>
+{% empty %}
+<tr><td colspan="6" class="muted">No job cards yet</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</section>
+{% endblock %}

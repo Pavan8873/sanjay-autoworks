@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ invoice.invoice_number }}</h1>
+    <p class="muted">Job <a href="{% url 'jobcards:detail' invoice.jobcard.pk %}">{{ invoice.jobcard.job_number }}</a> | {{ invoice.jobcard.customer.name }} | {{ invoice.jobcard.vehicle.registration_number }}</p>
+  </div>
+  <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+    {% if invoice.paid %}
+      <span class="badge badge-billed">Paid · {{ invoice.get_payment_method_display }}</span>
+    {% else %}
+      <span class="badge badge-open">Pending Payment</span>
+    {% endif %}
+    <a class="btn-primary" href="{% url 'billing:print' invoice.pk %}" target="_blank">🖨 Download Bill (A5)</a>
+    <a class="btn" href="{% url 'jobcards:print_jobcard' invoice.jobcard.pk %}" target="_blank">📋 Job Card</a>
+    {% if invoice.jobcard.checksheet %}
+    <a class="btn" href="{% url 'jobcards:print_checksheet' invoice.jobcard.pk %}" target="_blank">✅ Checksheet</a>
+    {% endif %}
+    <a class="btn" style="background:#25d366;color:#fff;border-color:#25d366" href="{% url 'jobcards:whatsapp_send' invoice.jobcard.pk %}">💬 Send WhatsApp</a>
+  </div>
+</div>
+
+<!-- Step indicator -->
+<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem;font-size:.85rem;color:#64748b;flex-wrap:wrap">
+  <span style="background:#e2e8f0;border-radius:4px;padding:.2rem .5rem">✓ Register</span>
+  <span>→</span>
+  <span style="background:#e2e8f0;border-radius:4px;padding:.2rem .5rem">✓ Job Card</span>
+  <span>→</span>
+  <span style="background:#e2e8f0;border-radius:4px;padding:.2rem .5rem">✓ Checksheet</span>
+  <span>→</span>
+  <span style="background:#e2e8f0;border-radius:4px;padding:.2rem .5rem">✓ Parts &amp; Labour</span>
+  <span>→</span>
+  <span style="background:var(--primary);color:#fff;border-radius:4px;padding:.2rem .5rem;font-weight:600">📄 Bill</span>
+</div>
+
+<div class="grid-2">
+  <!-- Parts from Inventory -->
+  <section class="card">
+    <header class="card-head"><h2>🔧 Parts from Inventory</h2></header>
+    <table class="data">
+      <thead><tr><th>SKU</th><th>Part</th><th>Qty</th><th>Unit ₹</th><th>Total ₹</th></tr></thead>
+      <tbody>
+        {% for p in invoice.jobcard.parts_used.all %}
+        <tr><td>{{ p.part.sku }}</td><td>{{ p.part.name }}</td><td>{{ p.quantity }}</td><td>{{ p.unit_price }}</td><td>{{ p.line_total|floatformat:2 }}</td></tr>
+        {% empty %}<tr><td colspan="5" class="muted">No inventory parts</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Manual Parts -->
+  <section class="card">
+    <header class="card-head"><h2>📦 Manual Parts</h2></header>
+    <table class="data">
+      <thead><tr><th>Name</th><th>Qty</th><th>Unit ₹</th><th>Total ₹</th></tr></thead>
+      <tbody>
+        {% for p in invoice.jobcard.manual_parts.all %}
+        <tr><td>{{ p.name }}</td><td>{{ p.quantity }}</td><td>{{ p.unit_price|floatformat:2 }}</td><td>{{ p.line_total|floatformat:2 }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">No manual parts</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<div class="grid-2">
+  <!-- Labour Charges -->
+  <section class="card">
+    <header class="card-head"><h2>💼 Labour Charges</h2></header>
+    <table class="data">
+      <thead><tr><th>Description</th><th>Amount ₹</th></tr></thead>
+      <tbody>
+        {% for lc in invoice.jobcard.labour_charges.all %}
+        <tr><td>{{ lc.description }}</td><td>₹{{ lc.amount|floatformat:2 }}</td></tr>
+        {% empty %}<tr><td colspan="2" class="muted">No labour charges</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Other/Manual Charges (invoice-level) -->
+  <section class="card">
+    <header class="card-head"><h2>🧾 Other Charges</h2></header>
+    <form method="post" action="{% url 'billing:add_charge' invoice.pk %}" class="inline-form">{% csrf_token %}
+      {{ charge_form.description|add_class:"input" }}
+      {{ charge_form.amount|add_class:"input" }}
+      <button class="btn-primary">Add</button>
+    </form>
+    <div class="presets">
+      {% for desc, amt in presets %}
+      <form method="post" action="{% url 'billing:add_charge' invoice.pk %}" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="description" value="{{ desc }}">
+        <input type="hidden" name="amount" value="{{ amt }}">
+        <button class="chip">+ {{ desc }} ₹{{ amt }}</button>
+      </form>
+      {% endfor %}
+    </div>
+    <table class="data">
+      <thead><tr><th>Description</th><th>Amount</th><th></th></tr></thead>
+      <tbody>
+        {% for c in invoice.manual_charges.all %}
+        <tr><td>{{ c.description }}</td><td>₹{{ c.amount }}</td>
+          <td><form method="post" action="{% url 'billing:remove_charge' invoice.pk c.pk %}">{% csrf_token %}<button class="linkbtn danger">Remove</button></form></td></tr>
+        {% empty %}<tr><td colspan="3" class="muted">No other charges</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<section class="card">
+  <header class="card-head"><h2>Summary &amp; Payment</h2></header>
+  <div class="totals">
+    <div><span>Parts Subtotal</span><strong>₹{{ invoice.parts_subtotal|floatformat:2 }}</strong></div>
+    <div><span>Labour</span><strong>₹{{ invoice.labor_subtotal|floatformat:2 }}</strong></div>
+    {% if invoice.manual_subtotal %}<div><span>Other Charges</span><strong>₹{{ invoice.manual_subtotal|floatformat:2 }}</strong></div>{% endif %}
+    <div class="hl"><span>Subtotal</span><strong>₹{{ invoice.subtotal|floatformat:2 }}</strong></div>
+    <div><span>GST @ {{ invoice.gst_rate }}%</span><strong>₹{{ invoice.gst_amount|floatformat:2 }}</strong></div>
+    <div class="grand"><span>GRAND TOTAL</span><strong>₹{{ invoice.total|floatformat:2 }}</strong></div>
+  </div>
+
+  <form method="post" action="{% url 'billing:pay' invoice.pk %}" class="inline-form" style="margin-top:1rem">{% csrf_token %}
+    {{ payment_form.payment_method|add_class:"input" }}
+    {{ payment_form.notes|add_class:"input" }}
+    {% if invoice.paid %}
+      <button class="btn">Update Payment</button>
+    {% else %}
+      <button class="btn-primary">Record Payment</button>
+    {% endif %}
+  </form>
+</section>
+
+{% endblock %}

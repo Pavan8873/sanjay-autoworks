@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}Service Checksheet — {{ job.job_number }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Service Checksheet</h1>
+    <p class="muted">{{ job.job_number }} · {{ job.customer.name }} · {{ job.vehicle.registration_number }}</p>
+  </div>
+  <a class="btn" href="{% url 'jobcards:detail' job.pk %}">← Back to Job Card</a>
+</div>
+
+<form method="post" class="form-card" style="max-width:900px">
+  {% csrf_token %}
+
+  <!-- Vehicle Details (read-only) -->
+  <div class="form-section">
+    <h3>Vehicle Details</h3>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem .75rem">
+      <div class="jc-cell"><label>Registration No.</label><div class="jc-val">{{ job.vehicle.registration_number }}</div></div>
+      <div class="jc-cell"><label>Make</label><div class="jc-val">{{ job.vehicle.make }}</div></div>
+      <div class="jc-cell"><label>Model</label><div class="jc-val">{{ job.vehicle.model }}</div></div>
+      <div class="jc-cell"><label>Mileage (km)</label><div class="jc-val">{{ job.odometer_in|default:"—" }}</div></div>
+      <div class="jc-cell"><label>Battery Make</label><div class="jc-val">{{ job.battery_condition|default:"—" }}</div></div>
+      <div class="jc-cell"><label>Tyre Make</label><div class="jc-val">{{ job.tyres_condition|default:"—" }}</div></div>
+    </div>
+  </div>
+
+  <!-- Service Checklist -->
+  <div class="form-section">
+    <h3>Service Checklist</h3>
+    <div class="jc-table-wrap">
+      <table class="wa-table">
+        <thead>
+          <tr>
+            <th class="wa-item-col" style="width:35%">Items</th>
+            <th class="wa-opt-col" style="width:10%">OK</th>
+            <th class="wa-opt-col" style="width:10%">NG</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, status_field, rem_field in cs_rows %}
+          <tr>
+            <td style="text-align:left">{{ label }}</td>
+            <td class="wa-radio-cell">
+              <label class="wa-radio-lbl">
+                <input type="radio" name="{{ status_field.html_name }}" value="ok"
+                  {% if status_field.value == "ok" %}checked{% endif %}>
+              </label>
+            </td>
+            <td class="wa-radio-cell">
+              <label class="wa-radio-lbl">
+                <input type="radio" name="{{ status_field.html_name }}" value="ng"
+                  {% if status_field.value == "ng" %}checked{% endif %}>
+              </label>
+            </td>
+            <td>{% render_field rem_field class="input" style="min-width:180px" %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Diagnostics Report -->
+  <div class="form-section">
+    <h3>Diagnostics Report</h3>
+    <div class="field">
+      {% render_field form.diagnostics_report class="input" %}
+    </div>
+  </div>
+
+  <!-- Battery -->
+  <div class="form-section">
+    <h3>Battery</h3>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem .75rem">
+      <div class="field" style="grid-column:span 2">
+        <label>{{ form.battery_voltage.label }}</label>
+        {% render_field form.battery_voltage class="input" placeholder="e.g. 12.6" %}
+      </div>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin:.4rem 0 .3rem">Specific Gravity of each cell (Volts):</p>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.6rem .75rem">
+      <div class="field"><label>{{ form.battery_cell_1.label }}</label>{% render_field form.battery_cell_1 class="input" placeholder="—" %}</div>
+      <div class="field"><label>{{ form.battery_cell_2.label }}</label>{% render_field form.battery_cell_2 class="input" placeholder="—" %}</div>
+      <div class="field"><label>{{ form.battery_cell_3.label }}</label>{% render_field form.battery_cell_3 class="input" placeholder="—" %}</div>
+      <div class="field"><label>{{ form.battery_cell_4.label }}</label>{% render_field form.battery_cell_4 class="input" placeholder="—" %}</div>
+      <div class="field"><label>{{ form.battery_cell_5.label }}</label>{% render_field form.battery_cell_5 class="input" placeholder="—" %}</div>
+      <div class="field"><label>{{ form.battery_cell_6.label }}</label>{% render_field form.battery_cell_6 class="input" placeholder="—" %}</div>
+    </div>
+  </div>
+
+  <!-- Brake -->
+  <div class="form-section">
+    <h3>Brake Pads (mm)</h3>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem .75rem">
+      <div class="field"><label>{{ form.brake_front_lhs.label }}</label>{% render_field form.brake_front_lhs class="input" %}</div>
+      <div class="field"><label>{{ form.brake_front_rhs.label }}</label>{% render_field form.brake_front_rhs class="input" %}</div>
+      <div class="field"><label>{{ form.brake_rear_lhs.label }}</label>{% render_field form.brake_rear_lhs class="input" %}</div>
+      <div class="field"><label>{{ form.brake_rear_rhs.label }}</label>{% render_field form.brake_rear_rhs class="input" %}</div>
+    </div>
+    <div class="field">
+      <label>{{ form.brake_liners.label }}</label>
+      {% render_field form.brake_liners class="input" %}
+    </div>
+  </div>
+
+  <!-- Job Remarks -->
+  <div class="form-section">
+    <h3>Job Performed / Remarks / Findings</h3>
+    <div class="field">
+      {% render_field form.job_remarks class="input" %}
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" type="submit">Save & Print Checksheet</button>
+    <a class="btn" href="{% url 'jobcards:detail' job.pk %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

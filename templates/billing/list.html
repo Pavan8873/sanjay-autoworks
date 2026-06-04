@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="page-title">Invoices</h1>
+<div class="filters">
+  <a href="?" class="{% if not status %}active{% endif %}">All</a>
+  <a href="?status=pending" class="{% if status == 'pending' %}active{% endif %}">Pending</a>
+  <a href="?status=paid" class="{% if status == 'paid' %}active{% endif %}">Paid</a>
+</div>
+<section class="card">
+<table class="data">
+<thead><tr><th>Invoice #</th><th>Customer</th><th>Vehicle</th><th>Date</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>
+{% for inv in invoices %}
+<tr>
+  <td><a href="{% url 'billing:detail' inv.pk %}">{{ inv.invoice_number }}</a></td>
+  <td>{{ inv.jobcard.customer.name }}</td>
+  <td>{{ inv.jobcard.vehicle.registration_number }}</td>
+  <td>{{ inv.created_at|date:"d M Y" }}</td>
+  <td>Rs {{ inv.total|floatformat:2 }}</td>
+  <td>{% if inv.paid %}<span class="badge badge-billed">Paid | {{ inv.get_payment_method_display }}</span>{% else %}<span class="badge badge-open">Pending</span>{% endif %}</td>
+  <td>
+    <a class="linkbtn action-edit" href="{% url 'billing:detail' inv.pk %}">Open</a>
+    <form method="post" action="{% url 'billing:delete' inv.pk %}" style="display:inline">{% csrf_token %}
+      <button class="linkbtn action-delete" onclick="return confirm('Delete this invoice? This cannot be undone.');">Delete</button>
+    </form>
+  </td>
+</tr>
+{% empty %}
+<tr><td colspan="7" class="muted">No invoices yet</td></tr>
+{% endfor %}
+</tbody></table>
+</section>
+{% endblock %}

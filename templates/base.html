@@ -1,0 +1,71 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ SHOP_NAME }}{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="{% if user.is_authenticated %}has-sidebar{% endif %}">
+{% if user.is_authenticated %}
+<aside class="sidebar">
+  <div class="brand">
+    <a href="{% url 'dashboard' %}" style="text-decoration:none">
+      <div class="sidebar-logo">
+        <img src="{% static 'saw_logo.jpeg' %}" alt="" class="sidebar-logo-img">
+        <div class="sidebar-logo-text">
+          <div class="sb-name">Sanjay Auto Works</div>
+          <div class="sb-sub">Automobile Service Workshop</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <nav class="sidenav">
+    <a href="{% url 'dashboard' %}"><span class="ico">🏠</span><span>Dashboard</span></a>
+    <a href="{% url 'customers:new' %}" class="cta"><span class="ico">＋</span><span>Quick Register</span></a>
+    <a href="{% url 'customers:list' %}"><span class="ico">👥</span><span>Customers</span></a>
+    <a href="{% url 'jobcards:list' %}"><span class="ico">🛠️</span><span>Job Cards</span></a>
+    <a href="{% url 'billing:list' %}"><span class="ico">🧾</span><span>Billing</span></a>
+    <a href="{% url 'reports' %}"><span class="ico">R</span><span>Reports</span></a>
+    <a href="{% url 'inventory:list' %}"><span class="ico">📦</span><span>Inventory</span></a>
+    <a href="{% url 'inventory:scan' %}"><span class="ico">📷</span><span>QR Scan</span></a>
+    <a href="{% url 'reminders:due_soon' %}"><span class="ico">💬</span><span>Reminders</span></a>
+  </nav>
+  <div class="userbox">
+    <span class="who">👤 {{ user.username }}</span>
+    <form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="linkbtn">⎋ Logout</button></form>
+  </div>
+</aside>
+{% endif %}
+
+<main class="container">
+  {% if messages %}
+    <div class="messages">
+      {% for m in messages %}<div class="msg msg-{{ m.tags }}">{{ m }}</div>{% endfor %}
+    </div>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+<script>
+(function(){
+  document.addEventListener('input', function(e){
+    const el = e.target;
+    if (!el) return;
+    const tag = el.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA') return;
+    const type = (el.type || '').toLowerCase();
+    if (type === 'password' || type === 'number' || type === 'date' || type === 'datetime-local' || type === 'time' || type === 'checkbox' || type === 'radio' || type === 'file') return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const next = (el.value || '').toUpperCase();
+    if (el.value !== next) {
+      el.value = next;
+      if (start !== null && end !== null) el.setSelectionRange(start, end);
+    }
+  });
+})();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

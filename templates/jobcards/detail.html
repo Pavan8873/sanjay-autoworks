@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ job.job_number }}</h1>
+    <p class="muted">
+      <a href="{% url 'customers:detail' job.customer.pk %}">{{ job.customer.name }}</a> ·
+      <a href="{% url 'customers:vehicle_detail' job.vehicle.pk %}">{{ job.vehicle.registration_number }}</a> ·
+      {{ job.vehicle.make }} {{ job.vehicle.model }}
+    </p>
+  </div>
+  <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+    <span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span>
+    <a class="btn" href="{% url 'jobcards:setup' job.pk %}">✏ Edit</a>
+    <a class="btn" href="{% url 'jobcards:print_jobcard' job.pk %}" target="_blank">🖨 Print Job Card</a>
+    {% if has_checksheet %}
+      <a class="btn" href="{% url 'jobcards:print_checksheet' job.pk %}" target="_blank">🖨 Print Checksheet</a>
+      <a class="btn" href="{% url 'jobcards:checksheet' job.pk %}">✏ Edit Checksheet</a>
+    {% else %}
+      <a class="btn btn-add" href="{% url 'jobcards:checksheet' job.pk %}">+ Service Checksheet</a>
+    {% endif %}
+    {% if job.status != 'billed' and job.status != 'cancelled' %}
+      <form method="post" action="{% url 'jobcards:complete' job.pk %}" style="display:inline">{% csrf_token %}
+        <button class="btn-primary">Complete & Bill</button>
+      </form>
+    {% endif %}
+    {% if job.invoice_id %}
+      <a class="btn" href="{% url 'billing:detail' job.invoice.pk %}">View Invoice</a>
+    {% endif %}
+    {% if job.status != 'billed' %}
+    <form method="post" action="{% url 'jobcards:delete' job.pk %}"
+          style="display:inline"
+          onsubmit="return confirm('Delete job card {{ job.job_number }}? Parts stock will be restored. This cannot be undone.')">
+      {% csrf_token %}
+      <button class="btn" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5">🗑 Delete</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Job Card Paper View -->
+<div class="jc-paper" style="margin-bottom:1rem">
+  <div class="jc-doc-header">
+    <div class="jc-doc-title">
+      <h2>{{ SHOP_NAME }}</h2>
+      <span>Job Card</span>
+    </div>
+    <span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span>
+  </div>
+
+  <!-- Job Info -->
+  <div class="jc-section-title">Job Card Information</div>
+  <div class="jc-row-4">
+    <div class="jc-cell"><label>Job Card No.</label><div class="jc-val">{{ job.job_number }}</div></div>
+    <div class="jc-cell"><label>Date</label><div class="jc-val">{{ job.created_at|date:"d M Y" }}</div></div>
+    <div class="jc-cell"><label>Service Advisor</label><div class="jc-val">{{ job.service_advisor|default:"—" }}</div></div>
+    <div class="jc-cell"><label>Technician</label><div class="jc-val">{{ job.mechanic|default:"—" }}</div></div>
+  </div>
+
+  <!-- Customer Details -->
+  <div class="jc-section-title">Customer Details</div>
+  <div class="jc-row-3">
+    <div class="jc-cell"><label>Customer Name</label><div class="jc-val">{{ job.customer.name }}</div></div>
+    <div class="jc-cell"><label>Contact No.</label><div class="jc-val">{{ job.customer.phone }}</div></div>
+    <div class="jc-cell"><label>Address</label><div class="jc-val">{{ job.customer.address|default:"—" }}</div></div>
+  </div>
+
+  <!-- Vehicle Details -->
+  <div class="jc-section-title">Vehicle Details</div>
+  <div class="jc-row-4">
+    <div class="jc-cell"><label>Make</label><div class="jc-val">{{ job.vehicle.make }}</div></div>
+    <div class="jc-cell"><label>Model</label><div class="jc-val">{{ job.vehicle.model }}</div></div>
+    <div class="jc-cell"><label>Registration No.</label><div class="jc-val">{{ job.vehicle.registration_number }}</div></div>
+    <div class="jc-cell"><label>Mileage (km)</label><div class="jc-val">{{ job.odometer_in|default:"—" }}</div></div>
+  </div>
+  <div class="jc-row-4">
+    <div class="jc-cell"><label>Battery</label><div class="jc-val">{{ job.battery_condition|default:"—" }}</div></div>
+    <div class="jc-cell"><label>Tyres</label><div class="jc-val">{{ job.tyres_condition|default:"—" }}</div></div>
+    <div class="jc-cell"><label>Chassis No.</label><div class="jc-val">{{ job.vehicle.chassis_number|default:"—" }}</div></div>
+    <div class="jc-cell"><label>Engine No.</label><div class="jc-val">{{ job.vehicle.engine_number|default:"—" }}</div></div>
+  </div>
+
+  <!-- Walk-Around Checklist -->
+  <div class="jc-section-title">Walk-Around Checklist</div>
+  <div class="jc-table-wrap">
+    <table class="wa-table">
+      <thead>
+        <tr>
+          <th class="wa-item-col">Item</th>
+          <th class="wa-opt-col">OK</th>
+          <th class="wa-opt-col">Not working / missing</th>
+          <th class="wa-opt-col">Dent / Damage / Scratch / Dots</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for label, val in wa_display %}
+        <tr>
+          <td>{{ label }}</td>
+          <td class="wa-radio-cell">{% if val == "ok" %}<span class="wa-tick">✓</span>{% endif %}</td>
+          <td class="wa-radio-cell">{% if val == "nw" %}<span class="wa-tick">✓</span>{% endif %}</td>
+          <td class="wa-radio-cell">{% if val == "dd" %}<span class="wa-tick">✓</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Job Description -->
+  <div class="jc-section-title">Job Description / Work Requested</div>
+  <div class="jc-cell" style="margin-bottom:.75rem">
+    <p style="white-space:pre-wrap;margin:0">{{ job.work_to_do|default:"—" }}</p>
+  </div>
+  {% if job.inspection_notes %}
+  <div class="jc-cell" style="margin-bottom:.75rem">
+    <label>Inspection Notes</label>
+    <p style="white-space:pre-wrap;margin:0">{{ job.inspection_notes }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Labour Summary -->
+  <div class="jc-section-title">Labour</div>
+  <div class="jc-row-4">
+    <div class="jc-cell"><label>Hours</label><div class="jc-val">{{ job.labor_hours }}</div></div>
+    <div class="jc-cell"><label>Rate (₹/hr)</label><div class="jc-val">{{ job.labor_rate }}</div></div>
+    <div class="jc-cell"><label>Labour Total</label><div class="jc-val">₹{{ job.labor_total|floatformat:2 }}</div></div>
+    <div class="jc-cell"><label>Parts Total</label><div class="jc-val">₹{{ job.parts_total|floatformat:2 }}</div></div>
+  </div>
+
+  <!-- Signature -->
+  <div class="jc-sig-row">
+    <div class="jc-sig-box">
+      <div class="jc-sig-line"></div>
+      <div class="jc-sig-label">Customer Signature</div>
+    </div>
+    <div class="jc-sig-box">
+      <div class="jc-sig-line"></div>
+      <div class="jc-sig-label">Service Advisor</div>
+    </div>
+  </div>
+</div>
+
+<!-- Parts Used Section -->
+<section class="card">
+  <header class="card-head"><h2>Parts & Labour Used</h2></header>
+  {% if popular_parts %}
+  <div class="muted small" style="margin-bottom:.25rem">One-tap add:</div>
+  <div class="quick-parts">
+    {% for p in popular_parts %}
+      <form method="post" action="{% url 'jobcards:add_part' job.pk %}" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="sku" value="{{ p.sku }}">
+        <input type="hidden" name="quantity" value="1">
+        <button type="submit" title="₹{{ p.unit_price }} · stock {{ p.stock }}">+ {{ p.name }}</button>
+      </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <form method="post" action="{% url 'jobcards:add_part' job.pk %}" class="inline-form">{% csrf_token %}
+    <input class="input" name="sku" placeholder="Scan QR or enter SKU" id="sku-input" autofocus>
+    <input class="input" name="quantity" type="number" min="1" value="1" style="max-width:90px">
+    <button class="btn-primary">Add</button>
+    <a class="btn" href="{% url 'inventory:scan' %}?return={% url 'jobcards:detail' job.pk %}">📷 Scan</a>
+  </form>
+  <table class="data">
+    <thead><tr><th>SKU</th><th>Part / Service</th><th>Qty / Hrs</th><th>Unit ₹</th><th>Total ₹</th><th>Remarks</th><th></th></tr></thead>
+    <tbody>
+      {% for p in job.parts_used.all %}
+      <tr>
+        <td>{{ p.part.sku }}</td>
+        <td>{{ p.part.name }}</td>
+        <td>{{ p.quantity }}</td>
+        <td>{{ p.unit_price }}</td>
+        <td>{{ p.line_total|floatformat:2 }}</td>
+        <td>—</td>
+        <td><form method="post" action="{% url 'jobcards:remove_part' job.pk p.pk %}">{% csrf_token %}<button class="linkbtn danger">Remove</button></form></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="muted">No parts added yet. Scan or enter SKU above.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<div style="max-width:700px;margin:0 auto">
+  <div class="page-head">
+    <h1 class="page-title">Add Vehicle</h1>
+    <p style="margin:0;color:#6b7280;font-size:0.95rem">Register a new vehicle for this customer</p>
+  </div>
+
+  <form method="post" class="vehicle-form-card">
+    {% csrf_token %}
+    
+    <!-- Vehicle Type & Basic Info Section -->
+    <div class="form-section">
+      <h2 class="section-title">Vehicle Details</h2>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.vehicle_type.id_for_label }}">Vehicle Type *</label>
+          {{ form.vehicle_type|add_class:"input select-input" }}
+          {% if form.vehicle_type.errors %}
+            <div class="msg msg-error">{{ form.vehicle_type.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.registration_number.id_for_label }}">Registration Number *</label>
+          {{ form.registration_number|add_class:"input" }}
+          {% if form.registration_number.errors %}
+            <div class="msg msg-error">{{ form.registration_number.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.make.id_for_label }}">Make / Brand *</label>
+          {{ form.make|add_class:"input" }}
+          {% if form.make.errors %}
+            <div class="msg msg-error">{{ form.make.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.model.id_for_label }}">Model *</label>
+          {{ form.model|add_class:"input" }}
+          {% if form.model.errors %}
+            <div class="msg msg-error">{{ form.model.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.color.id_for_label }}">Color</label>
+          {{ form.color|add_class:"input" }}
+          {% if form.color.errors %}
+            <div class="msg msg-error">{{ form.color.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.year.id_for_label }}">Year of Manufacture</label>
+          {{ form.year|add_class:"input" }}
+          {% if form.year.errors %}
+            <div class="msg msg-error">{{ form.year.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Vehicle Identifiers Section -->
+    <div class="form-section">
+      <h2 class="section-title">Identification</h2>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.engine_number.id_for_label }}">Engine Number</label>
+          {{ form.engine_number|add_class:"input" }}
+          {% if form.engine_number.errors %}
+            <div class="msg msg-error">{{ form.engine_number.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.chassis_number.id_for_label }}">Chassis Number</label>
+          {{ form.chassis_number|add_class:"input" }}
+          {% if form.chassis_number.errors %}
+            <div class="msg msg-error">{{ form.chassis_number.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="{{ form.odometer.id_for_label }}">Current Odometer (km)</label>
+        {{ form.odometer|add_class:"input" }}
+        {% if form.odometer.errors %}
+          <div class="msg msg-error">{{ form.odometer.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Expiry Dates Section -->
+    <div class="form-section">
+      <h2 class="section-title">Renewal Dates</h2>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.insurance_expiry.id_for_label }}">Insurance Expiry</label>
+          {{ form.insurance_expiry|add_class:"input" }}
+          {% if form.insurance_expiry.errors %}
+            <div class="msg msg-error">{{ form.insurance_expiry.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.pollution_expiry.id_for_label }}">Pollution Certificate Expiry</label>
+          {{ form.pollution_expiry|add_class:"input" }}
+          {% if form.pollution_expiry.errors %}
+            <div class="msg msg-error">{{ form.pollution_expiry.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="{{ form.rc_expiry.id_for_label }}">RC Renewal Expiry</label>
+        {{ form.rc_expiry|add_class:"input" }}
+        {% if form.rc_expiry.errors %}
+          <div class="msg msg-error">{{ form.rc_expiry.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">✓ Save Vehicle</button>
+      <a href="javascript:history.back()" class="btn-secondary">← Cancel</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.vehicle-form-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 2rem;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 1.5rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--primary);
+  display: inline-block;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-row .form-group:only-child {
+  grid-column: 1 / -1;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.form-group .input,
+.form-group select {
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--ink);
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.form-group .input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+  background: white;
+}
+
+.form-group .input[type="date"] {
+  color: var(--ink);
+}
+
+.form-group .input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+.form-group .select-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+.form-group .msg {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.msg-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.875rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+.btn-primary:hover {
+  background: #065f5a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.3);
+}
+
+.btn-secondary {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.btn-secondary:hover {
+  background: #d1d5db;
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .vehicle-form-card {
+    padding: 1.5rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+}
+</style>
+{% endblock %}

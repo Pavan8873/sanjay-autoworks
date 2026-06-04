@@ -1,0 +1,251 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service Checksheet — {{ job.job_number }}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#000;background:#fff}
+.print-wrap{max-width:210mm;margin:0 auto;padding:10mm 12mm}
+
+/* Header */
+.doc-header{display:table;width:100%;border-bottom:3px solid #000;padding-bottom:10px;margin-bottom:10px}
+.doc-header-left{display:table-cell;vertical-align:middle;width:72px;}
+.doc-logo{width:64px;height:64px;object-fit:contain;}
+.doc-title-block{display:table-cell;vertical-align:middle;padding-left:12px;}
+.shop-name{font-size:18pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.15}
+.shop-sub{font-size:9pt;color:#444;margin-top:2px}
+.doc-type{display:table-cell;vertical-align:bottom;text-align:right;white-space:nowrap;font-size:14pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+
+/* Sections */
+.section-title{background:#e8e8e8;font-weight:700;font-size:9pt;text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;margin:8px 0 5px;border-left:4px solid #000}
+.row-grid{display:table;width:100%;margin-bottom:6px}
+.row-grid-inner{display:table-row}
+.row-3 .cell{display:table-cell;width:33.33%;padding:0 5px 5px 0}
+.row-3 .cell:last-child{padding-right:0}
+.row-2 .cell{display:table-cell;width:50%;padding:0 5px 5px 0}
+.row-2 .cell:last-child{padding-right:0}
+.cell label{display:block;font-size:7.5pt;color:#555;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.cell .val{border-bottom:1px solid #888;min-height:20px;font-size:10pt;padding:2px 2px 1px}
+
+/* Service Checklist Table */
+.cs-table{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:8px}
+.cs-table th,.cs-table td{border:1px solid #888;padding:4px 6px}
+.cs-table th{background:#e8e8e8;font-weight:700;font-size:8pt;text-transform:uppercase;text-align:center}
+.cs-table td:first-child{text-align:left}
+.cs-item-col{width:40%;text-align:left!important}
+.cs-opt-col{width:10%;text-align:center}
+.cs-rem-col{width:40%}
+.tick{font-weight:700;font-size:12pt}
+
+/* Battery / Brake boxes */
+.detail-box{border:1px solid #888;border-radius:4px;padding:8px 10px;margin-bottom:8px}
+.detail-box h4{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;border-bottom:1px solid #ccc;padding-bottom:3px}
+.cell-row{display:table;width:100%;margin-bottom:4px}
+.cell-row-inner{display:table-row}
+.cell-row-6 .mini-cell{display:table-cell;width:16.66%;padding-right:6px}
+.cell-row-6 .mini-cell:last-child{padding-right:0}
+.cell-row-4 .mini-cell{display:table-cell;width:25%;padding-right:6px}
+.cell-row-4 .mini-cell:last-child{padding-right:0}
+.mini-cell label{display:block;font-size:7pt;color:#666;margin-bottom:1px}
+.mini-cell .val{border-bottom:1px solid #aaa;min-height:18px;font-size:9.5pt;padding:1px 2px}
+
+/* Text areas */
+.text-box{border:1px solid #888;min-height:48px;padding:6px;font-size:10pt;white-space:pre-wrap;margin-bottom:8px}
+
+/* Signatures */
+.sig-row{display:table;width:100%;margin-top:20px;padding-top:10px}
+.sig-box{display:table-cell;width:50%;padding:0 15px}
+.sig-box:first-child{padding-left:0}
+.sig-box:last-child{padding-right:0}
+.sig-box .sig-line{border-bottom:1px solid #000;height:36px}
+.sig-box .sig-label{font-size:8pt;text-align:center;margin-top:4px;color:#444;text-transform:uppercase;letter-spacing:.04em}
+
+/* Disclaimer */
+.disclaimer{font-size:7.5pt;color:#444;border-top:1px solid #ccc;padding-top:6px;margin-top:6px;font-style:italic;text-align:center}
+
+/* Print bar */
+.print-bar{display:flex;gap:10px;margin-bottom:12px;justify-content:flex-end}
+.print-bar button,.print-bar a{padding:6px 16px;border:1px solid #555;border-radius:5px;background:#fff;cursor:pointer;font-size:10pt;text-decoration:none;color:#000}
+.print-bar .btn-primary{background:#0f766e;color:#fff;border-color:#0f766e;font-weight:600}
+
+@media print{
+  .print-bar{display:none}
+  @page{size:A4;margin:6mm 8mm}
+  html,body{margin:0;padding:0}
+  body{font-size:8pt;line-height:1.2}
+  .print-wrap{padding:0;max-width:100%}
+
+  /* Header */
+  .doc-header{padding-bottom:5px;margin-bottom:5px;border-bottom-width:2px}
+  .doc-header-left{width:44px}
+  .doc-logo{width:40px;height:40px}
+  .shop-name{font-size:12pt}
+  .shop-sub{font-size:7pt;margin-top:1px}
+  .doc-type{font-size:10pt}
+
+  /* Section titles */
+  .section-title{padding:2px 6px;margin:4px 0 3px;font-size:7.5pt}
+
+  /* Vehicle rows */
+  .row-grid{margin-bottom:2px}
+  .cell{padding:0 4px 2px 0}
+  .cell label{font-size:6.5pt;margin-bottom:1px}
+  .cell .val{min-height:13px;font-size:8pt;padding:1px 2px}
+
+  /* Checklist table — most space consumed here */
+  .cs-table{font-size:7.5pt;margin-bottom:4px}
+  .cs-table th{padding:2px 4px;font-size:7pt}
+  .cs-table td{padding:1px 4px}
+  .tick{font-size:9pt}
+
+  /* Battery / Brake boxes */
+  .detail-box{padding:4px 6px;margin-bottom:4px}
+  .detail-box h4{font-size:7.5pt;margin-bottom:3px;padding-bottom:2px}
+  .mini-cell label{font-size:6pt;margin-bottom:0}
+  .mini-cell .val{min-height:13px;font-size:8pt;padding:1px 2px}
+
+  /* Text areas */
+  .text-box{min-height:22px;padding:3px;font-size:8pt;margin-bottom:4px}
+
+  /* Signatures */
+  .sig-row{margin-top:8px;padding-top:5px}
+  .sig-box .sig-line{height:22px}
+  .sig-box .sig-label{font-size:7pt;margin-top:2px}
+
+  /* Disclaimer */
+  .disclaimer{font-size:6.5pt;padding-top:4px;margin-top:3px}
+
+  .cs-table tr{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="print-wrap">
+  <div class="print-bar">
+    <a href="{% url 'jobcards:checksheet' job.pk %}">✏ Edit</a>
+    <a href="{% url 'jobcards:detail' job.pk %}">← Job Card</a>
+    <button class="btn-primary" onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <img class="doc-logo" src="{% static 'saw_logo.jpeg' %}" alt="Logo">
+    </div>
+    <div class="doc-title-block">
+      <div class="shop-name">Sanjay Auto Works</div>
+      <div class="shop-sub">Automobile Service Workshop</div>
+    </div>
+    <div class="doc-type">Service Checksheet</div>
+  </div>
+
+  <!-- Vehicle Details -->
+  <div class="section-title">Vehicle Details</div>
+  <div class="row-grid row-3">
+    <div class="row-grid-inner">
+      <div class="cell"><label>Registration No.</label><div class="val">{{ job.vehicle.registration_number }}</div></div>
+      <div class="cell"><label>Make</label><div class="val">{{ job.vehicle.make }}</div></div>
+      <div class="cell"><label>Model</label><div class="val">{{ job.vehicle.model }}</div></div>
+    </div>
+  </div>
+  <div class="row-grid row-3">
+    <div class="row-grid-inner">
+      <div class="cell"><label>Mileage (km)</label><div class="val">{{ job.odometer_in|default:"" }}</div></div>
+      <div class="cell"><label>Battery Make</label><div class="val">{{ job.battery_condition|default:"" }}</div></div>
+      <div class="cell"><label>Tyre Make</label><div class="val">{{ job.tyres_condition|default:"" }}</div></div>
+    </div>
+  </div>
+
+  <!-- Service Checklist -->
+  <div class="section-title">Service Checklist</div>
+  <table class="cs-table">
+    <thead>
+      <tr>
+        <th class="cs-item-col">Items</th>
+        <th class="cs-opt-col">OK</th>
+        <th class="cs-opt-col">NG</th>
+        <th class="cs-rem-col">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in cs_rows %}
+      <tr>
+        <td>{{ row.label }}</td>
+        <td style="text-align:center">{% if row.status == "ok" %}<span class="tick">✓</span>{% endif %}</td>
+        <td style="text-align:center">{% if row.status == "ng" %}<span class="tick">✓</span>{% endif %}</td>
+        <td>{{ row.remarks }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Diagnostics -->
+  {% if cs.diagnostics_report %}
+  <div class="section-title">Diagnostics Report</div>
+  <div class="text-box">{{ cs.diagnostics_report }}</div>
+  {% else %}
+  <div class="section-title">Diagnostics Report (If Required)</div>
+  <div class="text-box" style="min-height:36px"></div>
+  {% endif %}
+
+  <!-- Battery -->
+  <div class="detail-box">
+    <h4>Battery</h4>
+    <p style="font-size:9pt;margin-bottom:6px">Battery Voltage: <strong>{{ cs.battery_voltage|default:"_________" }}</strong> Volts</p>
+    <p style="font-size:8.5pt;margin-bottom:4px">Specific Gravity of each cell:</p>
+    <div class="cell-row cell-row-6">
+      <div class="cell-row-inner">
+        <div class="mini-cell"><label>Cell a</label><div class="val">{{ cs.battery_cell_1 }}</div></div>
+        <div class="mini-cell"><label>Cell b</label><div class="val">{{ cs.battery_cell_2 }}</div></div>
+        <div class="mini-cell"><label>Cell c</label><div class="val">{{ cs.battery_cell_3 }}</div></div>
+        <div class="mini-cell"><label>Cell d</label><div class="val">{{ cs.battery_cell_4 }}</div></div>
+        <div class="mini-cell"><label>Cell e</label><div class="val">{{ cs.battery_cell_5 }}</div></div>
+        <div class="mini-cell"><label>Cell f</label><div class="val">{{ cs.battery_cell_6 }}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Brake -->
+  <div class="detail-box">
+    <h4>Brake</h4>
+    <p style="font-size:8.5pt;margin-bottom:4px;font-weight:600">Brake pads (mm):</p>
+    <div class="cell-row cell-row-4">
+      <div class="cell-row-inner">
+        <div class="mini-cell"><label>Front LHS</label><div class="val">{{ cs.brake_front_lhs|default:"" }}</div></div>
+        <div class="mini-cell"><label>Front RHS</label><div class="val">{{ cs.brake_front_rhs|default:"" }}</div></div>
+        <div class="mini-cell"><label>Rear LHS</label><div class="val">{{ cs.brake_rear_lhs|default:"" }}</div></div>
+        <div class="mini-cell"><label>Rear RHS</label><div class="val">{{ cs.brake_rear_rhs|default:"" }}</div></div>
+      </div>
+    </div>
+    {% if cs.brake_liners %}
+    <p style="font-size:9pt;margin-top:5px"><strong>Brake Liners:</strong> {{ cs.brake_liners }}</p>
+    {% else %}
+    <p style="font-size:9pt;margin-top:5px;color:#aaa">Brake liners: _______________</p>
+    {% endif %}
+  </div>
+
+  <!-- Job Remarks -->
+  <div class="section-title">Job Performed / Remarks / Findings</div>
+  <div class="text-box">{{ cs.job_remarks|default:"" }}</div>
+
+  <!-- Signatures -->
+  <div class="sig-row">
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-label">Technician Signature</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-label">Customer Signature</div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    "I hereby declare that I have received, reviewed, and understood this vehicle health checksheet and the service recommendations made by Sanjay Auto Works"
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head">
+  <h1 class="page-title">🔔 Reminders</h1>
+  <a class="btn-primary" href="{% url 'reminders:due_soon' %}" style="background:#25d366;border-color:#25d366">
+    💬 Bulk WhatsApp — Service Due Soon
+  </a>
+</div>
+
+{% if not sms_enabled and not wa_enabled %}
+<div class="msg msg-warn" style="margin-bottom:1rem">
+  <strong>Messaging not fully configured.</strong>
+  The <strong>💬 WhatsApp ↗</strong> button works right now (opens your phone's WhatsApp).
+  To enable server-side SMS/WhatsApp, add these in your environment secrets:
+  <ul style="margin:.4rem 0 0 1.2rem;font-size:.85rem">
+    <li><code>TWILIO_ACCOUNT_SID</code> &amp; <code>TWILIO_AUTH_TOKEN</code></li>
+    <li>SMS: <code>TWILIO_SMS_FROM</code> + <code>SMS_ENABLED=1</code></li>
+    <li>WhatsApp API: <code>TWILIO_WHATSAPP_FROM</code> + <code>WHATSAPP_ENABLED=1</code></li>
+  </ul>
+</div>
+{% endif %}
+
+<div class="filters">
+  <a href="?status=pending" class="{% if status == 'pending' %}active{% endif %}">Pending</a>
+  <a href="?status=sent" class="{% if status == 'sent' %}active{% endif %}">Sent</a>
+  <a href="?status=dismissed" class="{% if status == 'dismissed' %}active{% endif %}">Dismissed</a>
+  <a href="?" class="{% if not status %}active{% endif %}">All</a>
+</div>
+
+<!-- Bulk Actions Bar -->
+<div id="bulk-actions" style="display:none;margin-bottom:1rem;padding:1rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+  <span id="selected-count" style="font-weight:600;color:#15803d">0 selected</span>
+  <button onclick="sendSelectedWhatsApp()" class="btn small" style="background:#25d366;color:#fff;border-color:#25d366">
+    💬 Send WhatsApp to Selected
+  </button>
+  <button onclick="dismissSelected()" class="btn small" style="background:#fca5a5;color:#fff;border-color:#fca5a5">
+    ✕ Dismiss Selected
+  </button>
+  <button onclick="clearSelection()" class="btn small" style="background:#e5e7eb;color:#1f2937;border-color:#d1d5db">
+    Clear Selection
+  </button>
+</div>
+
+<section class="card">
+<table class="data">
+<thead>
+  <tr>
+    <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)"></th>
+    <th>Type</th><th>Customer</th><th>Vehicle</th><th>Due Date</th><th>Channel</th><th>Status</th><th>Send</th>
+  </tr>
+</thead>
+<tbody>
+{% for r in reminders %}
+<tr class="reminder-row">
+  <td>
+    {% if r.status == 'pending' %}
+    <input type="checkbox" class="reminder-checkbox" data-id="{{ r.pk }}" onchange="updateBulkActionsBar()">
+    {% else %}
+    <input type="checkbox" disabled style="cursor:not-allowed;opacity:0.5">
+    {% endif %}
+  </td>
+  <td>{{ r.get_reminder_type_display }}</td>
+  <td>
+    <a href="{% url 'customers:detail' r.vehicle.customer.pk %}">{{ r.vehicle.customer.name }}</a>
+    <br><span class="muted small">{{ r.vehicle.customer.phone }}</span>
+  </td>
+  <td>{{ r.vehicle.registration_number }}</td>
+  <td>{{ r.due_date }}</td>
+  <td><span class="badge badge-open" style="font-size:.75rem">{{ r.get_channel_display }}</span></td>
+  <td>
+    {% if r.status == 'sent' %}<span class="badge badge-completed">Sent{% if r.sent_at %} {{ r.sent_at|date:"d M" }}{% endif %}</span>
+    {% elif r.status == 'dismissed' %}<span class="muted small">Dismissed</span>
+    {% else %}<span class="badge badge-open">Pending</span>{% endif %}
+  </td>
+  <td>
+    {% if r.status == 'pending' %}
+    <div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">
+
+      {% if sms_enabled %}
+      <form method="post" action="{% url 'reminders:send' r.pk %}" style="display:inline">
+        {% csrf_token %}<input type="hidden" name="channel" value="sms">
+        <button class="btn small" style="background:#0ea5e9;color:#fff;border-color:#0ea5e9" title="Send SMS via Twilio">📱 SMS</button>
+      </form>
+      {% endif %}
+
+      {% if wa_enabled %}
+      <form method="post" action="{% url 'reminders:send' r.pk %}" style="display:inline">
+        {% csrf_token %}<input type="hidden" name="channel" value="whatsapp">
+        <button class="btn small" style="background:#25d366;color:#fff;border-color:#25d366" title="Send via Twilio WhatsApp API">💬 WA API</button>
+      </form>
+      {% endif %}
+
+      <a href="{% url 'reminders:send_whatsapp' r.pk %}"
+         class="btn small" style="background:#128c7e;color:#fff;border-color:#128c7e"
+         title="Opens WhatsApp on your device — no Twilio needed">
+        💬 WhatsApp ↗
+      </a>
+
+      <form method="post" action="{% url 'reminders:dismiss' r.pk %}" style="display:inline">
+        {% csrf_token %}
+        <button class="linkbtn danger small">Dismiss</button>
+      </form>
+    </div>
+    {% else %}
+    <span class="muted small">—</span>
+    {% endif %}
+  </td>
+</tr>
+{% empty %}
+<tr><td colspan="8" class="muted">No reminders found.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</section>
+
+<style>
+.reminder-row:hover {
+  background-color: #f9fafb;
+}
+</style>
+
+<script>
+function toggleSelectAll(checkbox) {
+  document.querySelectorAll('.reminder-checkbox:not(:disabled)').forEach(cb => {
+    cb.checked = checkbox.checked;
+  });
+  updateBulkActionsBar();
+}
+
+function updateBulkActionsBar() {
+  const selected = document.querySelectorAll('.reminder-checkbox:checked').length;
+  const bulkActionsBar = document.getElementById('bulk-actions');
+  const selectedCount = document.getElementById('selected-count');
+  
+  selectedCount.textContent = selected + ' selected';
+  
+  if (selected > 0) {
+    bulkActionsBar.style.display = 'flex';
+  } else {
+    bulkActionsBar.style.display = 'none';
+  }
+  
+  // Update select-all checkbox state
+  const allCheckboxes = document.querySelectorAll('.reminder-checkbox:not(:disabled)');
+  const checkedCheckboxes = document.querySelectorAll('.reminder-checkbox:checked');
+  document.getElementById('select-all').checked = allCheckboxes.length === checkedCheckboxes.length && allCheckboxes.length > 0;
+}
+
+function getSelectedIds() {
+  return Array.from(document.querySelectorAll('.reminder-checkbox:checked'))
+    .map(cb => cb.dataset.id);
+}
+
+function sendSelectedWhatsApp() {
+  const ids = getSelectedIds();
+  if (ids.length === 0) {
+    alert('Please select at least one reminder');
+    return;
+  }
+  
+  // Create form and submit
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{% url "reminders:bulk_send_whatsapp" %}';
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    form.appendChild(csrfToken.cloneNode());
+  }
+  
+  ids.forEach(id => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'reminder_ids';
+    input.value = id;
+    form.appendChild(input);
+  });
+  
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}
+
+function dismissSelected() {
+  const ids = getSelectedIds();
+  if (ids.length === 0) {
+    alert('Please select at least one reminder');
+    return;
+  }
+  
+  if (!confirm('Dismiss ' + ids.length + ' reminder(s)?')) {
+    return;
+  }
+  
+  // Create form and submit
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{% url "reminders:bulk_dismiss" %}';
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfToken) {
+    form.appendChild(csrfToken.cloneNode());
+  }
+  
+  ids.forEach(id => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'reminder_ids';
+    input.value = id;
+    form.appendChild(input);
+  });
+  
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}
+
+function clearSelection() {
+  document.querySelectorAll('.reminder-checkbox').forEach(cb => {
+    cb.checked = false;
+  });
+  document.getElementById('select-all').checked = false;
+  updateBulkActionsBar();
+}
+</script>
+{% endblock %}

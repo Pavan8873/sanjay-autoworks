@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="page-title">QR / Barcode Scanner</h1>
+<p class="muted">Use your device camera to scan a part's QR code, or type the SKU manually.</p>
+<div class="card">
+  <div id="reader" style="max-width:480px"></div>
+  <div class="inline-form" style="margin-top:1rem">
+    <input class="input" id="manual-sku" placeholder="Type SKU and press Enter">
+    <button class="btn-primary" id="lookup-btn">Lookup</button>
+  </div>
+  <div id="result" style="margin-top:1rem"></div>
+</div>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+const resultEl = document.getElementById('result');
+async function lookup(code){
+  const r = await fetch(`{% url 'inventory:api_lookup' %}?code=${encodeURIComponent(code)}`);
+  const d = await r.json();
+  if (d.success){
+    resultEl.innerHTML = `<div class="msg msg-success">Found: <strong>${d.name}</strong> (SKU ${d.sku}) · Stock ${d.stock} · ₹${d.unit_price} · <a href="/inventory/${d.id}/">Open</a></div>`;
+  } else {
+    resultEl.innerHTML = `<div class="msg msg-error">${d.error}</div>`;
+  }
+}
+document.getElementById('lookup-btn').onclick = ()=>lookup(document.getElementById('manual-sku').value.trim());
+document.getElementById('manual-sku').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); lookup(e.target.value.trim()); }});
+try {
+  const html5QrCode = new Html5Qrcode("reader");
+  Html5Qrcode.getCameras().then(devs => {
+    if (devs && devs.length){
+      html5QrCode.start(devs[0].id, {fps:10, qrbox:{width:240,height:240}}, decoded=>{
+        lookup(decoded);
+      }).catch(()=>{});
+    }
+  }).catch(()=>{});
+} catch(e){}
+</script>
+{% endblock %}

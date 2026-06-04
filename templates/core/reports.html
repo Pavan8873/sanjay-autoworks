@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ label }}</h1>
+    <p class="muted">{{ start_date|date:"d M Y" }} — {{ end_date|date:"d M Y" }}</p>
+  </div>
+  <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+    <a class="btn-primary" href="{% url 'reports_excel' %}?period={{ period }}{% if from_date %}&from_date={{ from_date }}&to_date={{ to_date }}{% endif %}"
+       style="background:#15803d;border-color:#15803d">
+      📊 Download Excel
+    </a>
+    <a class="btn-primary" href="{% url 'reports_pdf' %}?period={{ period }}{% if from_date %}&from_date={{ from_date }}&to_date={{ to_date }}{% endif %}" target="_blank">
+      📄 Download PDF
+    </a>
+  </div>
+</div>
+
+<!-- Period tabs -->
+<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem">
+  <a href="{% url 'reports' %}?period=today"
+     style="padding:.4rem .85rem;border-radius:6px;font-size:.88rem;font-weight:500;text-decoration:none;
+            {% if period == 'today' %}background:var(--primary);color:#fff{% else %}background:#f1f5f9;color:#334155{% endif %}">
+     Today
+  </a>
+  <a href="{% url 'reports' %}?period=weekly"
+     style="padding:.4rem .85rem;border-radius:6px;font-size:.88rem;font-weight:500;text-decoration:none;
+            {% if period == 'weekly' %}background:var(--primary);color:#fff{% else %}background:#f1f5f9;color:#334155{% endif %}">
+     Last 7 Days
+  </a>
+  <a href="{% url 'reports' %}?period=monthly"
+     style="padding:.4rem .85rem;border-radius:6px;font-size:.88rem;font-weight:500;text-decoration:none;
+            {% if period == 'monthly' %}background:var(--primary);color:#fff{% else %}background:#f1f5f9;color:#334155{% endif %}">
+     This Month
+  </a>
+  <a href="{% url 'reports' %}?period=yearly"
+     style="padding:.4rem .85rem;border-radius:6px;font-size:.88rem;font-weight:500;text-decoration:none;
+            {% if period == 'yearly' %}background:var(--primary);color:#fff{% else %}background:#f1f5f9;color:#334155{% endif %}">
+     This Year
+  </a>
+</div>
+
+<!-- Custom date range -->
+<details {% if period == 'custom' %}open{% endif %}
+         style="background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:.6rem 1rem;margin-bottom:1.25rem">
+  <summary style="cursor:pointer;font-size:.9rem;font-weight:600;color:var(--primary)">📅 Custom Date Range</summary>
+  <form method="get" action="{% url 'reports' %}" style="display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;margin-top:.6rem">
+    <div>
+      <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:.2rem">From</label>
+      <input type="date" name="from_date" value="{{ from_date }}" class="input" style="padding:.4rem .6rem">
+    </div>
+    <div>
+      <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:.2rem">To</label>
+      <input type="date" name="to_date" value="{{ to_date }}" class="input" style="padding:.4rem .6rem">
+    </div>
+    <button class="btn-primary" style="padding:.45rem 1rem">Apply</button>
+    {% if period == 'custom' %}<a href="{% url 'reports' %}" class="btn" style="padding:.45rem 1rem">Clear</a>{% endif %}
+  </form>
+</details>
+
+<!-- Key stats grid -->
+<div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
+  <div class="stat green">
+    <div class="stat-label">Revenue Collected</div>
+    <div class="stat-value">₹{{ stats.revenue_paid|floatformat:0 }}</div>
+  </div>
+  <div class="stat orange">
+    <div class="stat-label">Pending Amount</div>
+    <div class="stat-value">₹{{ stats.pending_amount|floatformat:0 }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Total Invoiced</div>
+    <div class="stat-value">₹{{ stats.revenue_all|floatformat:0 }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Jobs Created</div>
+    <div class="stat-value">{{ stats.jobs_created }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Jobs Completed</div>
+    <div class="stat-value">{{ stats.jobs_completed }}</div>
+  </div>
+</div>
+<div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+  <div class="stat">
+    <div class="stat-label">Invoices</div>
+    <div class="stat-value">{{ stats.invoice_count }}</div>
+  </div>
+  <div class="stat green">
+    <div class="stat-label">Paid Invoices</div>
+    <div class="stat-value">{{ stats.paid_count }}</div>
+  </div>
+  <div class="stat red">
+    <div class="stat-label">Pending Invoices</div>
+    <div class="stat-value">{{ stats.pending_count }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">New Customers</div>
+    <div class="stat-value">{{ stats.new_customers }}</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Payment Method Breakdown -->
+  <section class="card">
+    <header class="card-head"><h2>Payment Method Breakdown</h2></header>
+    {% if payment_breakdown %}
+    <table class="data">
+      <thead><tr><th>Method</th><th style="text-align:right">Count</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody>
+        {% for row in payment_breakdown %}
+        <tr>
+          <td style="text-transform:capitalize">{{ row.payment_method|default:"—" }}</td>
+          <td style="text-align:right">{{ row.count }}</td>
+          <td style="text-align:right">₹{{ row.total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="padding:.75rem">No paid invoices in this period.</p>
+    {% endif %}
+  </section>
+
+  <!-- Jobs in Period -->
+  <section class="card">
+    <header class="card-head"><h2>Job Status Summary</h2></header>
+    {% if recent_jobs %}
+    <table class="data">
+      <thead><tr><th>Job #</th><th>Customer</th><th>Vehicle</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for job in recent_jobs %}
+        <tr>
+          <td><a href="{% url 'jobcards:detail' job.pk %}">{{ job.job_number }}</a></td>
+          <td>{{ job.customer.name }}</td>
+          <td>{{ job.vehicle.registration_number }}</td>
+          <td><span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">No jobs in this period.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="padding:.75rem">No jobs in this period.</p>
+    {% endif %}
+  </section>
+</div>
+
+<!-- Invoice Details -->
+<section class="card">
+  <header class="card-head"><h2>Invoice Details</h2></header>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Invoice #</th>
+        <th>Job Card</th>
+        <th>Customer</th>
+        <th>Vehicle</th>
+        <th>Date</th>
+        <th style="text-align:right">Amount</th>
+        <th>Payment</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inv in recent_invoices %}
+      <tr>
+        <td><a href="{% url 'billing:detail' inv.pk %}">{{ inv.invoice_number }}</a></td>
+        <td><a href="{% url 'jobcards:detail' inv.jobcard.pk %}">{{ inv.jobcard.job_number }}</a></td>
+        <td>{{ inv.jobcard.customer.name }}</td>
+        <td>{{ inv.jobcard.vehicle.registration_number }}</td>
+        <td>{{ inv.created_at|date:"d M Y" }}</td>
+        <td style="text-align:right">₹{{ inv.total|floatformat:2 }}</td>
+        <td style="text-transform:capitalize">{{ inv.payment_method|default:"—" }}</td>
+        <td>
+          {% if inv.paid %}
+            <span class="badge badge-billed">Paid</span>
+          {% else %}
+            <span class="badge badge-open">Pending</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="muted" style="padding:1rem;text-align:center">
+        No invoices in this period. Complete &amp; Bill a job card to see data here.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

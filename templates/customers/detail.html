@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ customer.name }}</h1>
+    <p class="muted">Customer #{{ customer.pk }} · Joined {{ customer.created_at|date:"d M Y" }}</p>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+    <a class="btn btn-edit" href="{% url 'customers:edit' customer.pk %}">✏ Edit Customer</a>
+    <a class="btn btn-add" href="{% url 'customers:add_vehicle' customer.pk %}">+ Add Vehicle</a>
+    <a class="btn-primary" href="{% url 'customers:new' %}">+ New Job Card</a>
+  </div>
+</div>
+
+<!-- Stats bar -->
+<div class="stats-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem">
+  <div class="stat-card">
+    <div class="stat-val">{{ total_visits }}</div>
+    <div class="stat-lbl">Total Visits</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val">{{ customer.vehicles.count }}</div>
+    <div class="stat-lbl">Vehicles</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val">₹{{ total_spend|floatformat:0 }}</div>
+    <div class="stat-lbl">Total Spend</div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Customer Info Card -->
+  <section class="card">
+    <header class="card-head">
+      <h2>Contact Details</h2>
+    </header>
+    <dl class="kv">
+      <dt>Phone</dt>
+      <dd>
+        {{ customer.phone }}
+        {% if customer.phone %}
+          <a href="https://wa.me/91{{ customer.phone|slice:'-10:' }}?text=Dear+{{ customer.name }}%2C+thank+you+for+visiting+{{ SHOP_NAME }}."
+             target="_blank" rel="noopener"
+             style="margin-left:.5rem;font-size:.8rem;background:#25d366;color:#fff;padding:2px 8px;border-radius:4px;text-decoration:none">
+            💬 WhatsApp
+          </a>
+        {% endif %}
+      </dd>
+      <dt>Email</dt><dd>{{ customer.email|default:"—" }}</dd>
+      <dt>Address</dt><dd style="white-space:pre-wrap">{{ customer.address|default:"—" }}</dd>
+      {% if customer.gstin %}<dt>GSTIN</dt><dd>{{ customer.gstin }}</dd>{% endif %}
+    </dl>
+  </section>
+
+  <!-- Vehicles -->
+  <section class="card">
+    <header class="card-head">
+      <h2>Vehicles</h2>
+      <a class="linkbtn action-add" href="{% url 'customers:add_vehicle' customer.pk %}">+ Add</a>
+    </header>
+    {% for v in vehicles %}
+    <div class="vehicle-block" style="border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.25rem">
+        <div>
+          <strong>{{ v.registration_number }}</strong>
+          <span class="muted" style="margin-left:.5rem">{{ v.make }} {{ v.model }} {% if v.year %}({{ v.year }}){% endif %}</span>
+        </div>
+        <div>
+          <a class="linkbtn action-view" href="{% url 'customers:vehicle_detail' v.pk %}">View</a>
+          <a class="linkbtn action-edit" href="{% url 'customers:edit_vehicle' v.pk %}">Edit</a>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem .75rem;margin-top:.5rem;font-size:.82rem;color:var(--text-muted)">
+        <span>{{ v.get_vehicle_type_display }}</span>
+        {% if v.color %}<span>· {{ v.color }}</span>{% endif %}
+        <span>· {{ v.odometer }} km</span>
+        {% if v.engine_number %}<span>· Eng: {{ v.engine_number }}</span>{% endif %}
+        {% if v.chassis_number %}<span>· Chs: {{ v.chassis_number }}</span>{% endif %}
+      </div>
+      {% if v.insurance_expiry or v.pollution_expiry or v.rc_expiry %}
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem">
+        {% if v.insurance_expiry %}
+          <span class="badge {% if v.insurance_expiry < today %}badge-cancelled{% elif v.insurance_expiry <= today|timeuntil %}badge-open{% else %}badge-completed{% endif %}"
+                style="font-size:.75rem">
+            Ins: {{ v.insurance_expiry|date:"d M Y" }}{% if v.insurance_expiry < today %} ⚠ Expired{% endif %}
+          </span>
+        {% endif %}
+        {% if v.pollution_expiry %}
+          <span class="badge {% if v.pollution_expiry < today %}badge-cancelled{% else %}badge-in_progress{% endif %}"
+                style="font-size:.75rem">
+            PUC: {{ v.pollution_expiry|date:"d M Y" }}{% if v.pollution_expiry < today %} ⚠ Expired{% endif %}
+          </span>
+        {% endif %}
+        {% if v.rc_expiry %}
+          <span class="badge {% if v.rc_expiry < today %}badge-cancelled{% else %}badge-open{% endif %}"
+                style="font-size:.75rem">
+            RC: {{ v.rc_expiry|date:"d M Y" }}{% if v.rc_expiry < today %} ⚠ Expired{% endif %}
+          </span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% empty %}
+    <p class="muted">No vehicles registered.</p>
+    {% endfor %}
+  </section>
+
+</div>
+
+<!-- Service History -->
+<section class="card" style="margin-top:1rem">
+  <header class="card-head">
+    <h2>Service History</h2>
+  </header>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Job #</th><th>Vehicle</th><th>Date</th><th>Status</th>
+        <th>Parts ₹</th><th>Labour ₹</th><th>Total ₹</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in jc_list %}
+      {% with j=item.jc %}
+      <tr>
+        <td><a href="{% url 'jobcards:detail' j.pk %}">{{ j.job_number }}</a></td>
+        <td>{{ j.vehicle.registration_number }}</td>
+        <td>{{ j.created_at|date:"d M Y" }}</td>
+        <td><span class="badge badge-{{ j.status }}">{{ j.get_status_display }}</span></td>
+        <td>₹{{ j.parts_total|floatformat:2 }}</td>
+        <td>₹{{ j.labor_total|floatformat:2 }}</td>
+        <td>{% if item.amount %}<strong>₹{{ item.amount|floatformat:2 }}</strong>{% else %}—{% endif %}</td>
+        <td>
+          <a class="linkbtn action-view" href="{% url 'jobcards:detail' j.pk %}">View</a>
+          <a class="linkbtn action-edit" href="{% url 'jobcards:setup' j.pk %}">Edit</a>
+          {% if j.status != 'billed' and j.status != 'cancelled' and j.status != 'completed' %}
+            <a class="linkbtn" href="{% url 'jobcards:parts_step' j.pk %}" style="color:#0891b2">Parts</a>
+          {% endif %}
+          {% if j.status == 'billed' %}<a class="linkbtn" href="{% url 'billing:detail' j.invoice.pk %}" style="color:#7c3aed">Invoice</a>{% endif %}
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr><td colspan="8" class="muted">No service history yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<!-- Reminders -->
+{% if reminders %}
+<section class="card" style="margin-top:1rem">
+  <header class="card-head"><h2>Upcoming Reminders</h2></header>
+  <table class="data">
+    <thead><tr><th>Vehicle</th><th>Type</th><th>Due Date</th><th>Status</th><th>Message</th></tr></thead>
+    <tbody>
+      {% for r in reminders %}
+      <tr>
+        <td>{{ r.vehicle.registration_number }}</td>
+        <td>{{ r.get_reminder_type_display }}</td>
+        <td>{% if r.due_date < today %}<strong style="color:#ef4444">{{ r.due_date }}</strong>{% else %}{{ r.due_date }}{% endif %}</td>
+        <td><span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span></td>
+        <td>{{ r.message|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<style>
+.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;text-align:center}
+.stat-val{font-size:1.6rem;font-weight:700;color:var(--primary)}
+.stat-lbl{font-size:.8rem;color:var(--text-muted);margin-top:.15rem}
+</style>
+{% endblock %}

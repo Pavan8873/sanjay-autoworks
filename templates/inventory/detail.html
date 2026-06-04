@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head">
+  <div><h1 class="page-title">{{ part.name }}</h1>
+    <p class="muted">SKU {{ part.sku }} · {{ part.category }}</p></div>
+  <div>
+    <a class="btn" href="{% url 'inventory:edit' part.pk %}">Edit</a>
+    <a class="btn-primary" href="{% url 'inventory:restock' part.pk %}">Restock</a>
+  </div>
+</div>
+<div class="grid-2">
+  <section class="card">
+    <header class="card-head"><h2>Details</h2></header>
+    <dl class="kv">
+      <dt>Price</dt><dd>₹{{ part.unit_price }}</dd>
+      <dt>Stock</dt><dd>{{ part.stock }}</dd>
+      <dt>Reorder Level</dt><dd>{{ part.reorder_level }}</dd>
+      <dt>Supplier</dt><dd>{{ part.supplier|default:"—" }}</dd>
+      <dt>Description</dt><dd>{{ part.description|default:"—" }}</dd>
+    </dl>
+  </section>
+  <section class="card">
+    <header class="card-head"><h2>QR Code</h2></header>
+    {% if part.qr_code %}<img src="{{ part.qr_code.url }}" alt="QR" class="qrimg">{% endif %}
+    <p class="muted small">Scan to look up this part instantly.</p>
+  </section>
+  <section class="card span-2">
+    <header class="card-head"><h2>Recent Movements</h2></header>
+    <table class="data">
+      <thead><tr><th>Type</th><th>Qty</th><th>Note</th><th>When</th></tr></thead>
+      <tbody>
+        {% for m in movements %}
+        <tr><td>{{ m.get_movement_type_display }}</td><td>{{ m.quantity }}</td><td>{{ m.note }}</td><td>{{ m.created_at|date:"d M Y H:i" }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">No movements yet</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

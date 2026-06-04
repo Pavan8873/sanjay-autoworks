@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Bulk WhatsApp Reminders{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">📲 Bulk WhatsApp Reminders</h1>
+    <p class="muted" style="margin:0">Customers with service due soon — send reminders in one go</p>
+  </div>
+  <a class="btn" href="{% url 'reminders:list' %}">← All Reminders</a>
+</div>
+
+<!-- Day filter -->
+<div class="filters" style="margin-bottom:1rem">
+  <a href="?days=3" class="{% if days == 3 %}active{% endif %}">🔴 Due in 3 days</a>
+  <a href="?days=7" class="{% if days == 7 %}active{% endif %}">🟡 Due in 7 days</a>
+  <a href="?days=30" class="{% if days == 30 %}active{% endif %}">🟢 Due in 30 days</a>
+  <a href="?days=90" class="{% if days == 90 %}active{% endif %}">All upcoming (90 days)</a>
+</div>
+
+{% if messages %}
+<div style="margin-bottom:1rem">
+  {% for m in messages %}
+  <div class="alert" style="padding:.6rem 1rem;border-radius:6px;margin-bottom:.4rem;background:{% if 'error' in m.tags %}#fee2e2;color:#991b1b{% else %}#d1fae5;color:#065f46{% endif %}">{{ m }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if rows %}
+<!-- Summary bar -->
+<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+  <div>
+    <strong>{{ rows|length }} customer(s)</strong> with service due within <strong>{{ days }} days</strong>
+    <span class="muted" style="margin-left:.5rem;font-size:.85rem">Click each "Send WhatsApp" button to open WhatsApp with a pre-filled message</span>
+  </div>
+  <button onclick="openAll()" class="btn-primary" style="background:#25d366;border-color:#25d366">
+    💬 Open All in WhatsApp
+  </button>
+</div>
+
+<section class="card" style="padding:0;overflow:hidden">
+  {% for row in rows %}
+  <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--line);{% if row.overdue %}background:#fff1f2{% elif row.urgent %}background:#fffbeb{% endif %}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem">
+
+      <!-- Customer & vehicle info -->
+      <div style="flex:1;min-width:200px">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.2rem">
+          <strong style="font-size:1rem">{{ row.customer.name }}</strong>
+          {% if row.overdue %}
+            <span style="background:#fecaca;color:#991b1b;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600">OVERDUE {{ row.days_left|stringformat:"d" }} days</span>
+          {% elif row.urgent %}
+            <span style="background:#fde68a;color:#92400e;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600">🔴 {{ row.days_left }} day(s) left</span>
+          {% else %}
+            <span style="background:#d1fae5;color:#065f46;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600">{{ row.days_left }} days left</span>
+          {% endif %}
+        </div>
+        <div class="muted" style="font-size:.85rem">
+          📞 {{ row.customer.phone }}
+          &nbsp;·&nbsp; 🚗 {{ row.vehicle.registration_number }} {{ row.vehicle.make }} {{ row.vehicle.model }}
+          &nbsp;·&nbsp; 📅 Service due: <strong>{{ row.reminder.due_date|date:"d M Y" }}</strong>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;flex-shrink:0">
+        {% if row.wa_link %}
+        <a href="{{ row.wa_link }}" target="_blank"
+           class="wa-send-btn btn-primary"
+           data-href="{{ row.wa_link }}"
+           style="background:#25d366;border-color:#25d366;text-decoration:none;padding:.45rem .9rem;border-radius:6px;font-size:.85rem;display:inline-flex;align-items:center;gap:.35rem"
+           onclick="markSent({{ row.reminder.pk }})">
+          💬 Send WhatsApp
+        </a>
+        {% else %}
+        <span class="muted small">No phone number</span>
+        {% endif %}
+
+        <form method="post" action="{% url 'reminders:mark_sent' row.reminder.pk %}" style="display:inline">
+          {% csrf_token %}
+          <button class="btn small" title="Mark as sent without opening WhatsApp" style="font-size:.8rem">✓ Mark Sent</button>
+        </form>
+
+        <form method="post" action="{% url 'reminders:dismiss' row.reminder.pk %}" style="display:inline">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="due_soon">
+          <button class="linkbtn danger small" style="font-size:.8rem">Dismiss</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Message preview (collapsible) -->
+    <details style="margin-top:.6rem">
+      <summary style="cursor:pointer;font-size:.82rem;color:var(--primary);user-select:none">📝 Preview message</summary>
+      <pre style="margin:.5rem 0 0;background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:.6rem .8rem;font-size:.8rem;white-space:pre-wrap;font-family:inherit">{{ row.message }}</pre>
+    </details>
+  </div>
+  {% endfor %}
+</section>
+
+<script>
+const waLinks = [
+  {% for row in rows %}{% if row.wa_link %}"{{ row.wa_link }}",{% endif %}{% endfor %}
+];
+
+function openAll() {
+  if (!waLinks.length) { alert('No WhatsApp links available.'); return; }
+  if (!confirm(`Open WhatsApp for all ${waLinks.length} customer(s)? Your browser may block multiple tabs — allow pop-ups if prompted.`)) return;
+  waLinks.forEach(function(link, i) {
+    setTimeout(function() { window.open(link, '_blank'); }, i * 600);
+  });
+}
+
+function markSent(pk) {
+  fetch('/reminders/' + pk + '/mark-sent/', {
+    method: 'POST',
+    headers: {'X-CSRFToken': '{{ csrf_token }}'},
+  });
+}
+</script>
+
+{% else %}
+<div style="text-align:center;padding:3rem 1rem;color:var(--muted)">
+  <div style="font-size:3rem;margin-bottom:.75rem">🎉</div>
+  <h2 style="margin:0 0 .4rem;color:var(--text)">No reminders due in {{ days }} days</h2>
+  <p style="margin:0 0 1.25rem">All customers are up to date, or no vehicles have service history yet.</p>
+  <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+    <a href="?days=30" class="btn">Check next 30 days</a>
+    <a href="?days=90" class="btn">Check next 90 days</a>
+    <a href="{% url 'reminders:list' %}" class="btn">All Reminders</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

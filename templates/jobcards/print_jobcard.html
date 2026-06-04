@@ -1,0 +1,226 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Card {{ job.job_number }}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#000;background:#fff}
+.print-wrap{max-width:210mm;margin:0 auto;padding:10mm 12mm}
+
+/* Header */
+.doc-header{display:table;width:100%;border-bottom:3px solid #000;padding-bottom:10px;margin-bottom:10px}
+.doc-header-left{display:table-cell;vertical-align:middle;width:72px;}
+.doc-logo{width:64px;height:64px;object-fit:contain;}
+.doc-title-block{display:table-cell;vertical-align:middle;padding-left:12px;}
+.shop-name{font-size:18pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.15}
+.shop-sub{font-size:9pt;color:#444;margin-top:2px}
+.doc-type{display:table-cell;vertical-align:bottom;text-align:right;white-space:nowrap;font-size:14pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+
+/* Sections */
+.section-title{background:#e8e8e8;font-weight:700;font-size:9pt;text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;margin:8px 0 5px;border-left:4px solid #000}
+.row-grid{display:table;width:100%;margin-bottom:6px}
+.row-grid-inner{display:table-row}
+.row-4 .cell{display:table-cell;width:25%;padding:0 5px 5px 0}
+.row-4 .cell:last-child{padding-right:0}
+.row-3 .cell{display:table-cell;width:33.33%;padding:0 5px 5px 0}
+.row-3 .cell:last-child{padding-right:0}
+.row-2 .cell{display:table-cell;width:50%;padding:0 5px 5px 0}
+.row-2 .cell:last-child{padding-right:0}
+.cell label{display:block;font-size:7.5pt;color:#555;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.cell .val{border-bottom:1px solid #888;min-height:20px;font-size:10pt;padding:2px 2px 1px}
+
+/* Walk-Around Table */
+.wa-table{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:8px}
+.wa-table th,.wa-table td{border:1px solid #888;padding:4px 6px;text-align:center}
+.wa-table th{background:#e8e8e8;font-weight:700;font-size:8pt;text-transform:uppercase}
+.wa-table td:first-child{text-align:left}
+.wa-item-col{width:38%}
+.wa-opt-col{width:20.6%}
+.tick{color:#000;font-weight:700;font-size:12pt}
+
+/* Parts Table */
+.parts-table{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:8px}
+.parts-table th,.parts-table td{border:1px solid #888;padding:4px 6px;text-align:left}
+.parts-table th{background:#e8e8e8;font-weight:700;font-size:8pt;text-transform:uppercase}
+.parts-table .num{text-align:right}
+.empty-rows td{color:#bbb;font-size:8pt;border-color:#ccc}
+
+/* Work Description */
+.work-box{border:1px solid #888;min-height:60px;padding:6px;font-size:10pt;white-space:pre-wrap;margin-bottom:8px}
+
+/* Signatures */
+.sig-row{display:table;width:100%;margin-top:20px;padding-top:10px}
+.sig-box{display:table-cell;width:50%;padding:0 15px}
+.sig-box:first-child{padding-left:0}
+.sig-box:last-child{padding-right:0}
+.sig-box .sig-line{border-bottom:1px solid #000;height:36px}
+.sig-box .sig-label{font-size:8pt;text-align:center;margin-top:4px;color:#444;text-transform:uppercase;letter-spacing:.04em}
+
+/* Print action bar */
+.print-bar{display:flex;gap:10px;margin-bottom:12px;justify-content:flex-end}
+.print-bar button,.print-bar a{padding:6px 16px;border:1px solid #555;border-radius:5px;background:#fff;cursor:pointer;font-size:10pt;text-decoration:none;color:#000}
+.print-bar .btn-primary{background:#0f766e;color:#fff;border-color:#0f766e;font-weight:600}
+
+@media print{
+  .print-bar{display:none}
+  @page{size:A4;margin:8mm 10mm}
+  body{font-size:9pt;line-height:1.2}
+  .print-wrap{padding:0}
+  .section-title{margin:5px 0 3px;padding:3px 6px}
+  .row-grid{margin-bottom:3px}
+  .cell{padding:0 4px 3px 0}
+  .cell .val{min-height:15px;font-size:9pt;padding:1px 2px}
+  .wa-table th,.wa-table td{padding:2px 4px;font-size:8pt}
+  .work-box{min-height:24px;padding:4px;font-size:9pt}
+  .parts-table th,.parts-table td{padding:3px 4px;font-size:8.5pt}
+  .parts-table tr{page-break-inside:avoid}
+  .sig-row{margin-top:10px;padding-top:6px}
+  .sig-box .sig-line{height:24px}
+  .doc-header{padding-bottom:6px;margin-bottom:6px}
+  .shop-name{font-size:14pt}
+  .doc-type{font-size:11pt}
+}
+</style>
+</head>
+<body>
+<div class="print-wrap">
+  <div class="print-bar">
+    <a href="{% url 'jobcards:detail' job.pk %}">← Back</a>
+    <button class="btn-primary" onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <img class="doc-logo" src="{% static 'saw_logo.jpeg' %}" alt="Logo">
+    </div>
+    <div class="doc-title-block">
+      <div class="shop-name">Sanjay Auto Works</div>
+      <div class="shop-sub">Automobile Service Workshop</div>
+    </div>
+    <div class="doc-type">Job Card</div>
+  </div>
+
+  <!-- Job Card Information -->
+  <div class="section-title">Job Card Information</div>
+  <div class="row-grid row-4">
+    <div class="row-grid-inner">
+      <div class="cell"><label>Job Card No.</label><div class="val">{{ job.job_number }}</div></div>
+      <div class="cell"><label>Date</label><div class="val">{{ job.created_at|date:"d M Y" }}</div></div>
+      <div class="cell"><label>Service Advisor</label><div class="val">{{ job.service_advisor|default:"" }}</div></div>
+      <div class="cell"><label>Technician</label><div class="val">{{ job.mechanic|default:"" }}</div></div>
+    </div>
+  </div>
+
+  <!-- Customer Details -->
+  <div class="section-title">Customer Details</div>
+  <div class="row-grid row-3">
+    <div class="row-grid-inner">
+      <div class="cell"><label>Customer Name</label><div class="val">{{ job.customer.name }}</div></div>
+      <div class="cell"><label>Contact No.</label><div class="val">{{ job.customer.phone }}</div></div>
+      <div class="cell"><label>Address</label><div class="val">{{ job.customer.address|default:"" }}</div></div>
+    </div>
+  </div>
+
+  <!-- Vehicle Details -->
+  <div class="section-title">Vehicle Details</div>
+  <div class="row-grid row-4">
+    <div class="row-grid-inner">
+      <div class="cell"><label>Make</label><div class="val">{{ job.vehicle.make }}</div></div>
+      <div class="cell"><label>Model</label><div class="val">{{ job.vehicle.model }}</div></div>
+      <div class="cell"><label>Registration No.</label><div class="val">{{ job.vehicle.registration_number }}</div></div>
+      <div class="cell"><label>Mileage (km)</label><div class="val">{{ job.odometer_in|default:"" }}</div></div>
+    </div>
+  </div>
+  <div class="row-grid row-4">
+    <div class="row-grid-inner">
+      <div class="cell"><label>Battery</label><div class="val">{{ job.battery_condition|default:"" }}</div></div>
+      <div class="cell"><label>Tyres</label><div class="val">{{ job.tyres_condition|default:"" }}</div></div>
+      <div class="cell"><label>Chassis No.</label><div class="val">{{ job.vehicle.chassis_number|default:"" }}</div></div>
+      <div class="cell"><label>Engine No.</label><div class="val">{{ job.vehicle.engine_number|default:"" }}</div></div>
+    </div>
+  </div>
+
+  <!-- Walk-Around Checklist -->
+  <div class="section-title">Walk-Around Checklist</div>
+  <table class="wa-table">
+    <thead>
+      <tr>
+        <th class="wa-item-col">Item</th>
+        <th class="wa-opt-col">OK</th>
+        <th class="wa-opt-col">Not Working / Missing</th>
+        <th class="wa-opt-col">Dent / Damage / Scratch</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for label, val in wa_display %}
+      <tr>
+        <td>{{ label }}</td>
+        <td>{% if val == "ok" %}<span class="tick">✓</span>{% endif %}</td>
+        <td>{% if val == "nw" %}<span class="tick">✓</span>{% endif %}</td>
+        <td>{% if val == "dd" %}<span class="tick">✓</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Job Description -->
+  <div class="section-title">Job Description / Work Requested</div>
+  <div class="work-box">{{ job.work_to_do|default:"" }}</div>
+
+  <!-- Parts & Labour -->
+  <div class="section-title">Parts &amp; Labour</div>
+  <table class="parts-table">
+    <thead>
+      <tr>
+        <th style="width:40%">Parts / Service Description</th>
+        <th style="width:18%">Quantity / Hours</th>
+        <th style="width:14%" class="num">Unit ₹</th>
+        <th style="width:14%" class="num">Total ₹</th>
+        <th style="width:14%">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in job.parts_used.all %}
+      <tr>
+        <td>{{ p.part.name }}</td>
+        <td>{{ p.quantity }}</td>
+        <td class="num">{{ p.unit_price }}</td>
+        <td class="num">{{ p.line_total|floatformat:2 }}</td>
+        <td></td>
+      </tr>
+      {% endfor %}
+      {% if job.labor_hours %}
+      <tr>
+        <td>Labour Charges</td>
+        <td>{{ job.labor_hours }} hrs</td>
+        <td class="num">{{ job.labor_rate }}</td>
+        <td class="num">{{ job.labor_total|floatformat:2 }}</td>
+        <td></td>
+      </tr>
+      {% endif %}
+      <tr style="font-weight:700;background:#f5f5f5">
+        <td colspan="3" style="text-align:right">Total</td>
+        <td class="num">₹{{ job.parts_total|floatformat:2 }}</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Signatures -->
+  <div class="sig-row">
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-label">Customer Signature</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-label">Service Advisor</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

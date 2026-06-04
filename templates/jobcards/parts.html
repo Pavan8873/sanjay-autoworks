@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block title %}Parts & Labour — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<!-- Stepper -->
+<div class="stepper">
+  <a class="step done" href="{% url 'customers:edit' job.customer.pk %}" style="text-decoration:none;color:inherit">
+    <div class="step-num">✓</div><span class="step-label">Register</span>
+  </a>
+  <div class="step-sep done"></div>
+  <a class="step done" href="{% url 'jobcards:setup' job.pk %}" style="text-decoration:none;color:inherit">
+    <div class="step-num">✓</div><span class="step-label">Job Card</span>
+  </a>
+  <div class="step-sep done"></div>
+  <a class="step done" href="{% url 'jobcards:checksheet_step' job.pk %}" style="text-decoration:none;color:inherit">
+    <div class="step-num">✓</div><span class="step-label">Checksheet</span>
+  </a>
+  <div class="step-sep done"></div>
+  <div class="step active"><div class="step-num">4</div><span class="step-label">Parts &amp; Labour</span></div>
+  <div class="step-sep"></div>
+  <div class="step"><div class="step-num">5</div><span class="step-label">Bill</span></div>
+</div>
+
+<div class="page-head" style="margin-top:.5rem">
+  <div>
+    <h1 class="page-title">Step 4 — Parts &amp; Labour</h1>
+    <p class="muted">
+      {{ job.job_number }} ·
+      <a href="{% url 'customers:detail' job.customer.pk %}">{{ job.customer.name }}</a> ·
+      {{ job.vehicle.registration_number }} {{ job.vehicle.make }} {{ job.vehicle.model }}
+    </p>
+  </div>
+  <span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span>
+</div>
+
+{% if messages %}
+<div style="margin-bottom:1rem">
+  {% for msg in messages %}
+  <div class="alert" style="padding:.6rem 1rem;border-radius:6px;margin-bottom:.4rem;background:{% if 'error' in msg.tags %}#fee2e2;color:#991b1b{% else %}#d1fae5;color:#065f46{% endif %}">{{ msg }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ══════════════════════════ LABOUR CHARGES ══════════════════════════ -->
+<section class="card" style="margin-bottom:1rem">
+  <header class="card-head">
+    <h2>💼 Labour Charges</h2>
+  </header>
+
+  <!-- Presets -->
+  <div style="margin-bottom:.65rem">
+    <span class="muted small">Quick add:</span>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
+      {% for desc, amt in labour_presets %}
+      <form method="post" action="{% url 'jobcards:add_labour' job.pk %}" style="display:inline">
+        {% csrf_token %}
+        <input type="hidden" name="description" value="{{ desc }}">
+        <input type="hidden" name="amount" value="{{ amt }}">
+        <button type="submit" class="chip">+ {{ desc }} ₹{{ amt }}</button>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Add form -->
+  <form method="post" action="{% url 'jobcards:add_labour' job.pk %}" style="display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.75rem;padding:.75rem;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+    {% csrf_token %}
+    <div class="field" style="margin:0;flex:2;min-width:180px">
+      <label class="label" style="font-size:.8rem">Description</label>
+      <input class="input" name="description" placeholder="e.g. Oil Change, AC Service…" required>
+    </div>
+    <div class="field" style="margin:0;flex:1;min-width:110px">
+      <label class="label" style="font-size:.8rem">Amount (₹)</label>
+      <input class="input" type="number" name="amount" step="0.01" min="1" placeholder="0.00" required>
+    </div>
+    <button class="btn-primary" type="submit" style="white-space:nowrap">+ Add Labour</button>
+  </form>
+
+  <!-- Labour list -->
+  {% if labour_charges %}
+  <table class="data">
+    <thead>
+      <tr><th>#</th><th>Description</th><th class="num">Amount (₹)</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for lc in labour_charges %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ lc.description }}</td>
+        <td class="num"><strong>{{ lc.amount|floatformat:2 }}</strong></td>
+        <td>
+          <form method="post" action="{% url 'jobcards:remove_labour' job.pk lc.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="linkbtn danger">✕ Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="font-weight:700;background:#f0fdf4">
+        <td colspan="2" style="text-align:right">Labour Total</td>
+        <td class="num">₹{{ job.labor_total|floatformat:2 }}</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+  {% else %}
+  <p class="muted" style="text-align:center;padding:.85rem;background:#f8fafc;border-radius:6px;font-size:.88rem">No labour charges added yet. Use presets above or enter custom charges.</p>
+  {% endif %}
+</section>
+
+<!-- ═══════════════════════ INVENTORY PARTS ════════════════════════════ -->
+<section class="card" style="margin-bottom:1rem">
+  <header class="card-head"><h2>🔧 Parts from Inventory</h2></header>
+
+  {% if popular_parts %}
+  <div class="muted small" style="margin-bottom:.35rem">Quick add (tap):</div>
+  <div class="quick-parts" style="margin-bottom:.75rem">
+    {% for p in popular_parts %}
+    <form method="post" action="{% url 'jobcards:add_part' job.pk %}?next=wizard" style="display:inline">
+      {% csrf_token %}
+      <input type="hidden" name="sku" value="{{ p.sku }}">
+      <input type="hidden" name="quantity" value="1">
+      <button type="submit" title="₹{{ p.unit_price }} · stock {{ p.stock }}">+ {{ p.name }}</button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'jobcards:add_part' job.pk %}?next=wizard" class="inline-form" style="margin-bottom:.75rem">
+    {% csrf_token %}
+    <input class="input" name="sku" placeholder="Scan QR or enter SKU" id="sku-input">
+    <input class="input" name="quantity" type="number" min="1" value="1" style="max-width:90px">
+    <button class="btn-primary">Add from Stock</button>
+    <a class="btn" href="{% url 'inventory:scan' %}?return={% url 'jobcards:parts_step' job.pk %}">📷 Scan</a>
+  </form>
+
+  <table class="data">
+    <thead>
+      <tr><th>SKU</th><th>Part / Item</th><th>Qty</th><th>Unit ₹</th><th>Total ₹</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for p in job.parts_used.all %}
+      <tr>
+        <td>{{ p.part.sku }}</td>
+        <td>{{ p.part.name }}</td>
+        <td>{{ p.quantity }}</td>
+        <td>{{ p.unit_price }}</td>
+        <td><strong>{{ p.line_total|floatformat:2 }}</strong></td>
+        <td>
+          <form method="post" action="{% url 'jobcards:remove_part' job.pk p.pk %}?next=wizard">
+            {% csrf_token %}
+            <button class="linkbtn danger">✕</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="muted" style="text-align:center;padding:1rem">No inventory parts added.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<!-- ════════════════════════ MANUAL PARTS ═════════════════════════════ -->
+<section class="card" style="margin-bottom:1rem">
+  <header class="card-head"><h2>📦 Parts / Items (Manual Entry)</h2></header>
+  <p class="muted small" style="margin-bottom:.6rem">Add parts not in inventory — enter name, quantity and price directly.</p>
+
+  <!-- Add form -->
+  <form method="post" action="{% url 'jobcards:add_manual_part' job.pk %}" style="display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.75rem;padding:.75rem;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+    {% csrf_token %}
+    <div class="field" style="margin:0;flex:2;min-width:180px">
+      <label class="label" style="font-size:.8rem">Part / Item Name</label>
+      <input class="input" name="name" placeholder="e.g. Engine Oil 5W-30, Spark Plug…" required>
+    </div>
+    <div class="field" style="margin:0;flex:0 0 90px">
+      <label class="label" style="font-size:.8rem">Qty</label>
+      <input class="input" type="number" name="quantity" min="1" value="1" required>
+    </div>
+    <div class="field" style="margin:0;flex:1;min-width:110px">
+      <label class="label" style="font-size:.8rem">Unit Price (₹)</label>
+      <input class="input" type="number" name="unit_price" step="0.01" min="0.01" placeholder="0.00" required>
+    </div>
+    <button class="btn-primary" type="submit" style="white-space:nowrap">+ Add Part</button>
+  </form>
+
+  <!-- Manual parts list -->
+  {% if manual_parts %}
+  <table class="data">
+    <thead>
+      <tr><th>#</th><th>Name</th><th>Qty</th><th>Unit ₹</th><th>Total ₹</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for mp in manual_parts %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ mp.name }}</td>
+        <td>{{ mp.quantity }}</td>
+        <td>{{ mp.unit_price|floatformat:2 }}</td>
+        <td><strong>{{ mp.line_total|floatformat:2 }}</strong></td>
+        <td>
+          <form method="post" action="{% url 'jobcards:remove_manual_part' job.pk mp.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="linkbtn danger">✕ Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted" style="text-align:center;padding:.85rem;background:#f8fafc;border-radius:6px;font-size:.88rem">No manual parts added. Use the form above to add parts not in inventory.</p>
+  {% endif %}
+</section>
+
+<!-- ══════════════════════════ TOTALS SUMMARY ═════════════════════════ -->
+<div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem">
+  <div style="border:2px solid #334155;border-radius:10px;padding:.85rem 1.4rem;min-width:260px;background:#f8fafc">
+    <div style="display:flex;justify-content:space-between;margin-bottom:.35rem;font-size:.92rem">
+      <span class="muted">Parts Total</span>
+      <strong>₹{{ parts_total|floatformat:2 }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:.35rem;font-size:.92rem">
+      <span class="muted">Labour Total</span>
+      <strong>₹{{ labor_total|floatformat:2 }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;border-top:2px solid #334155;padding-top:.5rem;font-size:1.05rem;font-weight:700">
+      <span>Subtotal (excl. GST)</span>
+      <span>₹{{ subtotal|floatformat:2 }}</span>
+    </div>
+    <div class="muted small" style="text-align:right;margin-top:.3rem">GST will be added on the bill</div>
+  </div>
+</div>
+
+<!-- Wizard Nav -->
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;padding-bottom:2rem">
+  <a class="btn" href="{% url 'jobcards:checksheet_step' job.pk %}">← Back: Checksheet</a>
+  <form method="post" action="{% url 'jobcards:complete' job.pk %}" onsubmit="return confirm('Mark job as complete and generate the bill?')">
+    {% csrf_token %}
+    <button class="btn-primary" style="font-size:1rem;padding:.65rem 1.75rem;font-weight:700">
+      ✅ Complete &amp; Generate Bill →
+    </button>
+  </form>
+</div>
+
+{% endblock %}

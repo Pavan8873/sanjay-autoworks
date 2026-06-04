@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="{% static 'saw_logo.jpeg' %}" alt="Sanjay Auto Works" class="login-logo-img">
+      <div class="login-logo-text">
+        <div class="login-brand-name">Sanjay Auto Works</div>
+        <div class="login-brand-sub">Automobile Service Workshop</div>
+        <div class="login-tagline">Trusted Expertise. Reliable Service. Every Vehicle, Every Time.</div>
+      </div>
+    </div>
+    <p class="muted" style="margin-bottom:1.25rem">Sign in to manage your service center</p>
+    <form method="post">{% csrf_token %}
+      {% if form.errors %}<div class="msg msg-error">Invalid credentials.</div>{% endif %}
+      <label>Username</label>
+      <input type="text" name="username" required autofocus autocapitalize="none" autocorrect="off" spellcheck="false">
+      <label>Password</label>
+      <input type="password" name="password" required>
+      <button class="btn-primary" type="submit">Sign In</button>
+    </form>
+    <p class="muted small">Default: admin / admin123</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<form method="post" class="jc-paper">
+  {% csrf_token %}
+
+  <!-- Header -->
+  <div class="jc-doc-header">
+    <div class="jc-doc-title">
+      <h2>{{ SHOP_NAME }}</h2>
+      <span>Job Card</span>
+    </div>
+    <div class="jc-doc-status">
+      {% if form.instance.pk %}
+        <span class="badge badge-{{ form.instance.status }}">{{ form.instance.get_status_display }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="msg msg-error">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <!-- Section 1: Job Card Information -->
+  <div class="jc-section-title">Job Card Information</div>
+  <div class="jc-row-4">
+    <div class="jc-cell">
+      <label>Job Card No.</label>
+      <div class="jc-val">{{ form.instance.job_number|default:"Auto-assigned" }}</div>
+    </div>
+    <div class="jc-cell">
+      <label>Date</label>
+      <div class="jc-val">{{ today|date:"d M Y" }}</div>
+    </div>
+    <div class="jc-cell">
+      <label>Service Advisor</label>
+      {{ form.service_advisor|add_class:"input" }}
+      {% if form.service_advisor.errors %}<div class="msg msg-error">{{ form.service_advisor.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="jc-cell">
+      <label>Technician</label>
+      {{ form.mechanic|add_class:"input" }}
+    </div>
+  </div>
+
+  <!-- Section 2: Customer Details -->
+  <div class="jc-section-title">Customer Details</div>
+  <div class="jc-row-3">
+    <div class="jc-cell">
+      <label>Customer <span class="req">*</span></label>
+      {{ form.customer|add_class:"input" }}
+      {% if form.customer.errors %}<div class="msg msg-error">{{ form.customer.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="jc-cell">
+      <label>Contact No.</label>
+      <div class="jc-val" id="cust-phone">—</div>
+    </div>
+    <div class="jc-cell jc-span-1">
+      <label>Address</label>
+      <div class="jc-val" id="cust-address">—</div>
+    </div>
+  </div>
+
+  <!-- Section 3: Vehicle Details -->
+  <div class="jc-section-title">Vehicle Details</div>
+  <div class="jc-row-2" style="margin-bottom:.5rem">
+    <div class="jc-cell">
+      <label>Vehicle <span class="req">*</span></label>
+      {{ form.vehicle|add_class:"input" }}
+      {% if form.vehicle.errors %}<div class="msg msg-error">{{ form.vehicle.errors|join:", " }}</div>{% endif %}
+    </div>
+  </div>
+  <div class="jc-row-4">
+    <div class="jc-cell">
+      <label>Make</label>
+      <div class="jc-val" id="veh-make">—</div>
+    </div>
+    <div class="jc-cell">
+      <label>Model</label>
+      <div class="jc-val" id="veh-model">—</div>
+    </div>
+    <div class="jc-cell">
+      <label>Registration No.</label>
+      <div class="jc-val" id="veh-reg">—</div>
+    </div>
+    <div class="jc-cell">
+      <label>Mileage (km)</label>
+      {{ form.odometer_in|add_class:"input" }}
+    </div>
+  </div>
+  <div class="jc-row-4">
+    <div class="jc-cell">
+      <label>Battery</label>
+      {{ form.battery_condition|add_class:"input" }}
+    </div>
+    <div class="jc-cell">
+      <label>Tyres</label>
+      {{ form.tyres_condition|add_class:"input" }}
+    </div>
+    <div class="jc-cell">
+      <label>Chassis No.</label>
+      <div class="jc-val" id="veh-chassis">—</div>
+    </div>
+    <div class="jc-cell">
+      <label>Engine No.</label>
+      <div class="jc-val" id="veh-engine">—</div>
+    </div>
+  </div>
+
+  <!-- Section 4: Walk-Around Checklist -->
+  <div class="jc-section-title">Walk-Around Checklist</div>
+  <div class="jc-table-wrap">
+    <table class="wa-table">
+      <thead>
+        <tr>
+          <th class="wa-item-col">Item</th>
+          <th class="wa-opt-col">OK</th>
+          <th class="wa-opt-col">Not working / missing</th>
+          <th class="wa-opt-col">Dent / Damage / Scratch / Dots</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for label, field in wa_fields %}
+        <tr>
+          <td>{{ label }}</td>
+          <td class="wa-radio-cell">
+            <label class="wa-radio-lbl">
+              <input type="radio" name="{{ field.html_name }}" value="ok" {% if field.value == "ok" %}checked{% endif %}>
+            </label>
+          </td>
+          <td class="wa-radio-cell">
+            <label class="wa-radio-lbl">
+              <input type="radio" name="{{ field.html_name }}" value="nw" {% if field.value == "nw" %}checked{% endif %}>
+            </label>
+          </td>
+          <td class="wa-radio-cell">
+            <label class="wa-radio-lbl">
+              <input type="radio" name="{{ field.html_name }}" value="dd" {% if field.value == "dd" %}checked{% endif %}>
+            </label>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 5: Job Description -->
+  <div class="jc-section-title">Job Description / Work Requested</div>
+  <div class="jc-cell" style="margin-bottom:1rem">
+    {{ form.work_to_do|add_class:"input" }}
+  </div>
+
+  <!-- Section 6: Inspection Notes & Labour -->
+  <div class="jc-row-4">
+    <div class="jc-cell jc-span-2">
+      <label>Inspection Notes</label>
+      {{ form.inspection_notes|add_class:"input" }}
+    </div>
+    <div class="jc-cell">
+      <label>Labor Hours</label>
+      {{ form.labor_hours|add_class:"input" }}
+    </div>
+    <div class="jc-cell">
+      <label>Labor Rate (₹/hr)</label>
+      {{ form.labor_rate|add_class:"input" }}
+    </div>
+  </div>
+  <div class="jc-row-2" style="margin-bottom:1rem">
+    <div class="jc-cell">
+      <label>Status</label>
+      {{ form.status|add_class:"input" }}
+    </div>
+  </div>
+
+  <!-- Signature Row -->
+  <div class="jc-sig-row">
+    <div class="jc-sig-box">
+      <div class="jc-sig-line"></div>
+      <div class="jc-sig-label">Customer Signature</div>
+    </div>
+    <div class="jc-sig-box">
+      <div class="jc-sig-line"></div>
+      <div class="jc-sig-label">Service Advisor</div>
+    </div>
+  </div>
+
+  <div class="actions" style="margin-top:1.25rem">
+    <button class="btn-primary" type="submit">💾 Save Job Card</button>
+    <a class="btn" href="{% url 'jobcards:list' %}">Cancel</a>
+  </div>
+</form>
+
+<script id="veh-data" type="application/json">{{ vehicles_json }}</script>
+<script id="cust-data" type="application/json">{{ customers_json }}</script>
+<script>
+(function(){
+  var vehicles = JSON.parse(document.getElementById('veh-data').textContent);
+  var customers = JSON.parse(document.getElementById('cust-data').textContent);
+  var vMap = {};
+  vehicles.forEach(function(v){ vMap[v.id] = v; });
+  var cMap = {};
+  customers.forEach(function(c){ cMap[c.id] = c; });
+
+  var custSel = document.querySelector('[name="customer"]');
+  var vehSel = document.querySelector('[name="vehicle"]');
+
+  function fillCustomer(id) {
+    var c = cMap[parseInt(id)];
+    document.getElementById('cust-phone').textContent = c ? (c.phone || '—') : '—';
+    document.getElementById('cust-address').textContent = c ? (c.address || '—') : '—';
+  }
+
+  function fillVehicle(id) {
+    var v = vMap[parseInt(id)];
+    document.getElementById('veh-make').textContent = v ? (v.make || '—') : '—';
+    document.getElementById('veh-model').textContent = v ? (v.model || '—') : '—';
+    document.getElementById('veh-reg').textContent = v ? (v.registration_number || '—') : '—';
+    document.getElementById('veh-chassis').textContent = v ? (v.chassis_number || '—') : '—';
+    document.getElementById('veh-engine').textContent = v ? (v.engine_number || '—') : '—';
+    // auto-fill odometer if blank
+    var odom = document.querySelector('[name="odometer_in"]');
+    if (odom && !odom.value && v && v.odometer) odom.value = v.odometer;
+    // sync customer dropdown
+    if (v && custSel && String(custSel.value) !== String(v.customer_id)) {
+      custSel.value = v.customer_id;
+      fillCustomer(v.customer_id);
+    }
+  }
+
+  if (vehSel) {
+    vehSel.addEventListener('change', function(){ fillVehicle(this.value); });
+    if (vehSel.value) fillVehicle(vehSel.value);
+  }
+  if (custSel) {
+    custSel.addEventListener('change', function(){ fillCustomer(this.value); });
+    if (custSel.value) fillCustomer(custSel.value);
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ vehicle.registration_number }}</h1>
+    <p class="muted">{{ vehicle.make }} {{ vehicle.model }} · {{ vehicle.get_vehicle_type_display }} · Owner: <a href="{% url 'customers:detail' vehicle.customer.pk %}">{{ vehicle.customer.name }}</a></p>
+  </div>
+  <div>
+    <a class="btn" href="{% url 'customers:edit_vehicle' vehicle.pk %}">Edit</a>
+    <a class="btn" href="{% url 'reminders:new' vehicle.pk %}">+ Reminder</a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <header class="card-head"><h2>Vehicle Details</h2></header>
+    <dl class="kv">
+      <dt>Color</dt><dd>{{ vehicle.color|default:"—" }}</dd>
+      <dt>Year</dt><dd>{{ vehicle.year|default:"—" }}</dd>
+      <dt>Engine #</dt><dd>{{ vehicle.engine_number|default:"—" }}</dd>
+      <dt>Chassis #</dt><dd>{{ vehicle.chassis_number|default:"—" }}</dd>
+      <dt>Odometer</dt><dd>{{ vehicle.odometer }} km</dd>
+      <dt>Insurance</dt><dd>{{ vehicle.insurance_expiry|default:"—" }}</dd>
+      <dt>Pollution</dt><dd>{{ vehicle.pollution_expiry|default:"—" }}</dd>
+      <dt>RC</dt><dd>{{ vehicle.rc_expiry|default:"—" }}</dd>
+    </dl>
+  </section>
+
+  <section class="card">
+    <header class="card-head"><h2>Service History</h2></header>
+    <table class="data">
+      <thead><tr><th>Job #</th><th>Date</th><th>Status</th><th>Total</th></tr></thead>
+      <tbody>
+        {% for j in jobcards %}
+        <tr><td><a href="{% url 'jobcards:detail' j.pk %}">{{ j.job_number }}</a></td>
+          <td>{{ j.created_at|date:"d M Y" }}</td>
+          <td><span class="badge badge-{{ j.status }}">{{ j.get_status_display }}</span></td>
+          <td>{% if j.invoice %}₹{{ j.invoice.total|floatformat:2 }}{% else %}—{% endif %}</td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">No services yet</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <header class="card-head"><h2>Reminders</h2></header>
+    <table class="data">
+      <thead><tr><th>Type</th><th>Due</th><th>Channel</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in reminders %}
+        <tr><td>{{ r.get_reminder_type_display }}</td>
+          <td>{{ r.due_date }}</td>
+          <td>{{ r.get_channel_display }}</td>
+          <td>{{ r.get_status_display }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">No reminders</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

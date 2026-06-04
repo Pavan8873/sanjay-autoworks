@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "AutoCare Service Manager"
+version = "1.0.0"
+
+[[services]]
+localPort = 8000
+name = "AutoCare Service Manager"
+paths = ["/"]
+
+[services.development]
+run = "bash /home/runner/workspace/artifacts/autocare/start.sh"
+
+[services.production]
+
+[services.production.build]
+args = ["bash", "-c", "cd /home/runner/workspace/artifacts/autocare && pip install -r requirements.txt -q && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py seed 2>/dev/null || true"]
+
+[services.production.run]
+args = ["bash", "-c", "cd /home/runner/workspace/artifacts/autocare && exec gunicorn autoservice.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60"]
+
+[services.production.run.env]
+PORT = "8000"
+DJANGO_DEBUG = "0"
+
+[services.production.health.startup]
+path = "/login/"

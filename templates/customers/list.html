@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head">
+  <h1 class="page-title">Customers</h1>
+  <a class="btn-primary" href="{% url 'customers:new' %}">+ Quick Register</a>
+</div>
+<form method="get" class="searchbar">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search by name, phone, email or vehicle number">
+  <button>Search</button>
+</form>
+<section class="card">
+<table class="data">
+<thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Vehicles</th><th>Joined</th><th>Actions</th></tr></thead>
+<tbody>
+{% for c in customers %}
+  <tr>
+    <td><a href="{% url 'customers:detail' c.pk %}">{{ c.name }}</a></td>
+    <td>{{ c.phone }}</td>
+    <td>{{ c.email|default:"-" }}</td>
+    <td>{{ c.vehicles.count }}</td>
+    <td>{{ c.created_at|date:"d M Y" }}</td>
+    <td>
+      <a class="linkbtn action-edit" href="{% url 'customers:edit' c.pk %}">Edit</a>
+      <form method="post" action="{% url 'customers:delete' c.pk %}" style="display:inline">{% csrf_token %}
+        <button class="linkbtn action-delete" onclick="return confirm('Delete this customer? This cannot be undone.');">Delete</button>
+      </form>
+    </td>
+  </tr>
+{% empty %}
+<tr><td colspan="6" class="muted">No customers yet. Use Quick Register to add one.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</section>
+{% endblock %}

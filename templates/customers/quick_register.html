@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+
+<!-- Stepper -->
+<div class="stepper">
+  <div class="step active"><div class="step-num">1</div><span class="step-label">Register</span></div>
+  <div class="step-sep"></div>
+  <div class="step"><div class="step-num">2</div><span class="step-label">Job Card</span></div>
+  <div class="step-sep"></div>
+  <div class="step"><div class="step-num">3</div><span class="step-label">Checksheet</span></div>
+  <div class="step-sep"></div>
+  <div class="step"><div class="step-num">4</div><span class="step-label">Parts &amp; Labour</span></div>
+  <div class="step-sep"></div>
+  <div class="step"><div class="step-num">5</div><span class="step-label">Bill</span></div>
+</div>
+
+<h1 class="page-title" style="margin-bottom:.25rem">Register Customer &amp; Create Job Card</h1>
+<p class="muted" style="margin-bottom:1.25rem">Type the phone number or vehicle number first — existing details will auto-fill.</p>
+
+<form method="post" class="form-card" id="qr-form">{% csrf_token %}
+
+  {% if form.errors %}
+  <div class="msg msg-error" style="margin-bottom:1rem">
+    <strong>Please fix the following:</strong>
+    <ul style="margin:.4rem 0 0 1.1rem;padding:0">
+      {% for field in form %}
+        {% for error in field.errors %}
+          <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="form-section">
+    <h3>Customer</h3>
+    <div class="grid-2">
+      <div>
+        <label>Phone <span class="muted small">(start here)</span></label>
+        {{ form.phone|add_class:"input"|attr:"id:f-phone"|attr:"inputmode:tel"|attr:"autocomplete:tel" }}
+        {% if form.phone.errors %}<div class="small" style="color:#dc2626;margin-top:.2rem">{{ form.phone.errors|join:", " }}</div>{% endif %}
+        <div id="phone-hint" class="small muted" style="margin-top:.25rem"></div>
+      </div>
+      <div>
+        <label>Name</label>
+        {{ form.name|add_class:"input"|attr:"id:f-name"|attr:"autocomplete:name" }}
+        {% if form.name.errors %}<div class="small" style="color:#dc2626;margin-top:.2rem">{{ form.name.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div><label>Email</label>{{ form.email|add_class:"input"|attr:"id:f-email" }}</div>
+      <div><label>GSTIN (optional)</label>{{ form.gstin|add_class:"input uppercase"|attr:"id:f-gstin" }}</div>
+      <div class="span-2"><label>Address</label>{{ form.address|add_class:"input"|attr:"id:f-address" }}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>Vehicle</h3>
+    <div class="grid-2">
+      <div>
+        <label>Registration # <span class="muted small">(or scan plate)</span></label>
+        {{ form.registration_number|add_class:"input uppercase"|attr:"id:f-reg"|attr:"autocomplete:off" }}
+        {% if form.registration_number.errors %}<div class="small" style="color:#dc2626;margin-top:.2rem">{{ form.registration_number.errors|join:", " }}</div>{% endif %}
+        <div id="reg-hint" class="small muted" style="margin-top:.25rem"></div>
+      </div>
+      <div>
+        <label>Type</label>
+        <div class="seg" id="seg-type">
+          {% for val,label in form.vehicle_type.field.choices %}
+            <button type="button" class="seg-btn" data-val="{{ val }}">{{ label }}</button>
+          {% endfor %}
+        </div>
+        <div style="display:none">{{ form.vehicle_type|attr:"id:f-type" }}</div>
+      </div>
+      <div>
+        <label>Make</label>
+        <input list="makes" id="f-make" name="make" class="input" value="{{ form.make.value|default:'' }}" autocomplete="off">
+        <datalist id="makes">
+          <option>Maruti Suzuki</option><option>Hyundai</option><option>Tata</option><option>Mahindra</option>
+          <option>Honda</option><option>Toyota</option><option>Kia</option><option>Renault</option>
+          <option>Ford</option><option>Volkswagen</option><option>Skoda</option><option>Nissan</option>
+          <option>Hero</option><option>Bajaj</option><option>TVS</option><option>Royal Enfield</option>
+          <option>Yamaha</option><option>Suzuki</option><option>KTM</option><option>Jawa</option>
+        </datalist>
+      </div>
+      <div><label>Model</label>{{ form.model|add_class:"input"|attr:"id:f-model" }}</div>
+      <div><label>Engine Number</label>{{ form.engine_number|add_class:"input uppercase"|attr:"id:f-engine" }}</div>
+      <div><label>Chassis Number</label>{{ form.chassis_number|add_class:"input uppercase"|attr:"id:f-chassis" }}</div>
+      <div><label>Color</label>{{ form.color|add_class:"input"|attr:"id:f-color" }}</div>
+      <div>
+        <label>Year</label>
+        <input type="number" id="f-year" name="year" class="input" min="1980" max="2030"
+               value="{{ form.year.value|default:'' }}" placeholder="e.g. 2022">
+      </div>
+      <div><label>Odometer (km)</label>{{ form.odometer|add_class:"input"|attr:"id:f-odo" }}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>Inspection</h3>
+    <label>Issues observed</label>
+    {{ form.inspection_notes|add_class:"input"|attr:"id:f-notes" }}
+    <div class="presets" style="margin-top:.5rem">
+      <span class="chip" data-note="General service">General service</span>
+      <span class="chip" data-note="Engine oil change">Engine oil change</span>
+      <span class="chip" data-note="Brake pads worn">Brake pads worn</span>
+      <span class="chip" data-note="AC not cooling">AC not cooling</span>
+      <span class="chip" data-note="Battery weak">Battery weak</span>
+      <span class="chip" data-note="Tyre puncture">Tyre puncture</span>
+      <span class="chip" data-note="Wheel alignment & balancing">Alignment & balancing</span>
+      <span class="chip" data-note="Wash & polish">Wash & polish</span>
+    </div>
+  </div>
+
+  <div class="actions"><button class="btn-primary">Register & Create Job Card</button></div>
+</form>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const phone = $('f-phone'), reg = $('f-reg');
+  const phoneHint = $('phone-hint'), regHint = $('reg-hint');
+
+  // Default year = current year if empty
+  const yearEl = $('f-year');
+  if (yearEl && !yearEl.value) yearEl.value = new Date().getFullYear();
+
+  // Uppercase as you type
+  document.querySelectorAll('.uppercase').forEach(el => {
+    el.addEventListener('input', () => el.value = el.value.toUpperCase());
+  });
+
+  // Segmented control for vehicle type
+  const seg = $('seg-type'); const typeSel = $('f-type');
+  function syncSeg(){
+    seg.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('on', b.dataset.val === typeSel.value));
+  }
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('.seg-btn'); if (!b) return;
+    typeSel.value = b.dataset.val; syncSeg();
+  });
+  syncSeg();
+
+  // Inspection note chips append text
+  document.querySelectorAll('.chip[data-note]').forEach(c => {
+    c.addEventListener('click', () => {
+      const t = $('f-notes'); const v = (t.value || '').trim();
+      t.value = v ? v + '\n' + c.dataset.note : c.dataset.note;
+      t.focus();
+    });
+  });
+
+  let phoneT, regT;
+  function setHint(el, msg, kind){ el.textContent = msg; el.style.color = kind==='ok'?'#15803d':kind==='warn'?'#b45309':'#6b7280'; }
+
+  const up = s => (s || '').toString().toUpperCase().trim();
+
+  function fillCustomer(c){
+    if ($('f-name') && !$('f-name').value) $('f-name').value = up(c.name);
+    if ($('f-email') && !$('f-email').value) $('f-email').value = (c.email || '').trim();
+    if ($('f-address') && !$('f-address').value) $('f-address').value = up(c.address);
+    if ($('f-gstin') && !$('f-gstin').value) $('f-gstin').value = up(c.gstin);
+  }
+  function fillVehicle(v){
+    if (!$('f-reg').value) $('f-reg').value = up(v.reg);
+    if (!$('f-make').value) $('f-make').value = up(v.make);
+    if (!$('f-model').value) $('f-model').value = up(v.model);
+    if ($('f-engine') && !$('f-engine').value) $('f-engine').value = up(v.engine_number);
+    if ($('f-chassis') && !$('f-chassis').value) $('f-chassis').value = up(v.chassis_number);
+    if (!$('f-color').value) $('f-color').value = up(v.color);
+    if (v.year && !$('f-year').value) $('f-year').value = v.year;
+    if (v.odometer && (!$('f-odo').value || $('f-odo').value === '0')) $('f-odo').value = v.odometer;
+    if (v.type) { typeSel.value = v.type; syncSeg(); }
+  }
+
+  function showVehiclePicker(vehicles, afterPick) {
+    let picker = document.getElementById('veh-picker');
+    if (picker) picker.remove();
+    picker = document.createElement('div');
+    picker.id = 'veh-picker';
+    picker.style.cssText = 'background:#fff;border:1px solid #d1d5db;border-radius:.5rem;padding:.5rem;margin-top:.5rem;display:flex;flex-wrap:wrap;gap:.4rem;';
+    vehicles.forEach(v => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip';
+      btn.style.cursor = 'pointer';
+      btn.textContent = `${v.reg} — ${v.make} ${v.model}`;
+      btn.addEventListener('click', () => { fillVehicle(v); picker.remove(); afterPick(v); });
+      picker.appendChild(btn);
+    });
+    phoneHint.after(picker);
+  }
+
+  phone.addEventListener('input', () => {
+    clearTimeout(phoneT);
+    const val = phone.value.replace(/\D/g,'');
+    if (val.length < 4) { setHint(phoneHint, '', ''); document.getElementById('veh-picker')?.remove(); return; }
+    phoneT = setTimeout(async () => {
+      const r = await fetch(`{% url 'customers:api_lookup_phone' %}?phone=` + encodeURIComponent(val));
+      const d = await r.json();
+      if (!d.found) { setHint(phoneHint, 'New customer — fill details below.', ''); return; }
+      fillCustomer(d);
+      if (d.vehicles && d.vehicles.length > 1) {
+        setHint(phoneHint, `Returning customer • ${d.name} • ${d.vehicles.length} vehicles — pick one:`, 'ok');
+        showVehiclePicker(d.vehicles, v => setHint(phoneHint, `Returning customer • ${d.name} • Vehicle ${v.reg} filled.`, 'ok'));
+      } else if (d.vehicles && d.vehicles.length === 1) {
+        const v = d.vehicles[0];
+        fillVehicle(v);
+        setHint(phoneHint, `✓ Returning customer • ${d.name} • Vehicle ${v.reg} pre-filled.`, 'ok');
+      } else {
+        setHint(phoneHint, `✓ Returning customer • ${d.name} pre-filled.`, 'ok');
+      }
+    }, 350);
+  });
+
+  reg.addEventListener('input', () => {
+    clearTimeout(regT);
+    const val = reg.value.toUpperCase();
+    if (val.length < 4) { setHint(regHint, '', ''); return; }
+    regT = setTimeout(async () => {
+      const r = await fetch(`{% url 'customers:api_lookup_vehicle' %}?reg=` + encodeURIComponent(val));
+      const d = await r.json();
+      if (!d.found) { setHint(regHint, 'New vehicle — fill details below.', ''); return; }
+      fillVehicle(d);
+      if (!$('f-reg').value || $('f-reg').value.length < d.reg.length) $('f-reg').value = d.reg;
+      if (d.customer) {
+        if (!$('f-phone').value) $('f-phone').value = d.customer.phone;
+        fillCustomer(d.customer);
+        setHint(regHint, `✓ Known vehicle • ${d.reg} • Owner: ${d.customer.name} pre-filled.`, 'ok');
+      }
+    }, 350);
+  });
+})();
+</script>
+{% endblock %}
+
